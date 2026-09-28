@@ -1,0 +1,3 @@
+# These four fixtures are authenticated byte-for-byte. Preserve their exact
+# contents on Windows, macOS and Linux checkouts.
+test/fixtures/v14/*.json -text
