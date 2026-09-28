@@ -1,0 +1,240 @@
+{
+  "capturedAtUtc": "2026-08-28T17:49:37.257Z",
+  "endpoint": "wss://eraprojects.org",
+  "chainName": "ERA-MAINNET",
+  "genesisHash": "0xba96ed0fe6c37790ee7da7ed9e83e9630b29fc8ba66e6753dc2e5c5704aa94e7",
+  "runtimeVersion": {
+    "specName": "era",
+    "implName": "era",
+    "authoringVersion": 1,
+    "specVersion": 13,
+    "implVersion": 1,
+    "apis": [
+      [
+        "0xab3c0572291feb8b",
+        1
+      ],
+      [
+        "0xdf6acb689907609b",
+        5
+      ],
+      [
+        "0x37e397fc7c91f5e4",
+        2
+      ],
+      [
+        "0x40fe3ad401f8959a",
+        6
+      ],
+      [
+        "0xd2bc9897eed08f15",
+        3
+      ],
+      [
+        "0xbc9d89904f5b923f",
+        1
+      ],
+      [
+        "0x37c8bb1350a9a2a8",
+        4
+      ],
+      [
+        "0xcbca25e39f142387",
+        2
+      ],
+      [
+        "0xed99c5acb25eedf5",
+        3
+      ],
+      [
+        "0xfbc577b9d747efd6",
+        1
+      ]
+    ],
+    "transactionVersion": 1,
+    "systemVersion": 1,
+    "stateVersion": 1
+  },
+  "metadataVersion": 14,
+  "metadataBytes": 209828,
+  "metadataSha256": "5c3715502b0f4cd3c3bc124f13f7f153cd3486e0c3877dc1d685335e57ed4c3f",
+  "runtimeCodeBytes": 997122,
+  "runtimeWasmSha256": "ecca5baddc60d4e8522c8ea6206fec0c29175d59ddf2359e6d43201f1faa44a2",
+  "aiPredictionsStorageVersionKey": "0x507d4f0bb08b9e2c877acf6d401c17174e7b9012096b41c4eb3aaf947f6ea429",
+  "aiPredictionsStorageVersionRaw": "0x0300",
+  "aiPredictionsStorageVersion": 3,
+  "finalizedHead": "0xa30eb89343b028049399dfb9cfc82dc80ef3b2674b07bba24a37ef3824a7b8cd",
+  "health": {
+    "peers": 4,
+    "isSyncing": false,
+    "shouldHavePeers": true
+  },
+  "properties": {
+    "ss58Format": 42,
+    "tokenDecimals": 18,
+    "tokenSymbol": "ETKN",
+    "tokenUnit": "nakamishi"
+  },
+  "pallets": [
+    {
+      "name": "System",
+      "index": 0,
+      "storagePrefix": "System",
+      "callType": 95,
+      "eventType": 22,
+      "errorType": 111
+    },
+    {
+      "name": "Timestamp",
+      "index": 1,
+      "storagePrefix": "Timestamp",
+      "callType": 112,
+      "eventType": null,
+      "errorType": null
+    },
+    {
+      "name": "Balances",
+      "index": 2,
+      "storagePrefix": "Balances",
+      "callType": 128,
+      "eventType": 32,
+      "errorType": 135
+    },
+    {
+      "name": "TransactionPayment",
+      "index": 3,
+      "storagePrefix": "TransactionPayment",
+      "callType": null,
+      "eventType": 34,
+      "errorType": null
+    },
+    {
+      "name": "Sudo",
+      "index": 4,
+      "storagePrefix": "Sudo",
+      "callType": 138,
+      "eventType": 35,
+      "errorType": 206
+    },
+    {
+      "name": "Session",
+      "index": 5,
+      "storagePrefix": "Session",
+      "callType": 140,
+      "eventType": 39,
+      "errorType": 214
+    },
+    {
+      "name": "Historical",
+      "index": 6,
+      "storagePrefix": null,
+      "callType": null,
+      "eventType": 40,
+      "errorType": null
+    },
+    {
+      "name": "Babe",
+      "index": 7,
+      "storagePrefix": "Babe",
+      "callType": 143,
+      "eventType": null,
+      "errorType": 231
+    },
+    {
+      "name": "Grandpa",
+      "index": 8,
+      "storagePrefix": "Grandpa",
+      "callType": 151,
+      "eventType": 41,
+      "errorType": 235
+    },
+    {
+      "name": "Authorship",
+      "index": 9,
+      "storagePrefix": "Authorship",
+      "callType": null,
+      "eventType": null,
+      "errorType": null
+    },
+    {
+      "name": "Staking",
+      "index": 10,
+      "storagePrefix": "Staking",
+      "callType": 162,
+      "eventType": 45,
+      "errorType": 260
+    },
+    {
+      "name": "Vesting",
+      "index": 11,
+      "storagePrefix": "Vesting",
+      "callType": 175,
+      "eventType": 52,
+      "errorType": 264
+    },
+    {
+      "name": "AiPredictions",
+      "index": 12,
+      "storagePrefix": "AiPredictions",
+      "callType": 177,
+      "eventType": 53,
+      "errorType": 297
+    },
+    {
+      "name": "RewardReserve",
+      "index": 13,
+      "storagePrefix": "RewardReserve",
+      "callType": 178,
+      "eventType": 61,
+      "errorType": 302
+    },
+    {
+      "name": "Multisig",
+      "index": 14,
+      "storagePrefix": "Multisig",
+      "callType": 179,
+      "eventType": 67,
+      "errorType": 306
+    },
+    {
+      "name": "Proxy",
+      "index": 15,
+      "storagePrefix": "Proxy",
+      "callType": 181,
+      "eventType": 69,
+      "errorType": 315
+    },
+    {
+      "name": "Assets",
+      "index": 16,
+      "storagePrefix": "Assets",
+      "callType": 183,
+      "eventType": 72,
+      "errorType": 325
+    },
+    {
+      "name": "Nfts",
+      "index": 17,
+      "storagePrefix": "Nfts",
+      "callType": 184,
+      "eventType": 73,
+      "errorType": 348
+    },
+    {
+      "name": "EraWorlds",
+      "index": 18,
+      "storagePrefix": "EraWorlds",
+      "callType": 205,
+      "eventType": 83,
+      "errorType": 350
+    },
+    {
+      "name": "IssuanceCap",
+      "index": 19,
+      "storagePrefix": "IssuanceCap",
+      "callType": null,
+      "eventType": 85,
+      "errorType": 353
+    }
+  ]
+}

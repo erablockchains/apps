@@ -1,0 +1,99 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+**/build/
+/coverage/
+**/.kotlin/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Store signing secrets and local packaging artifacts
+android/key.properties
+android/**/*.jks
+android/**/*.keystore
+key.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*.cer
+*.appxupload
+*.msix
+*.msixbundle
+*.appinstaller
+*.tar.gz
+*.apk
+*.aab
+*.ipa
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Local-only configuration and credentials
+.env
+.env.*
+local.properties
+android/local.properties
+
+# Tooling caches and generated platform intermediates
+.agents/
+.gradle/
+**/.gradle/
+**/ephemeral/
+**/Pods/
+
+# Reproducible Phase 6B binding staging output (installed bindings live in lib/)
+artifacts/phase6b/generated/
+
+# Local validation logs (results are summarized in tracked documentation)
+evidence/phase6b-final-validation/
+
+# Local production release payloads; tracked manifests live under release/.
+/production-release/
+/era-wallet-phase6b-production-release.zip
+/era-wallet-phase6b-production-release.zip.sha256
+
+# Website handoff binaries remain local; metadata, checksums, and evidence are tracked.
+/release/website-handoff/**/public/**/*.zip
