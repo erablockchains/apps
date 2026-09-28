@@ -25,14 +25,17 @@ void main() {
           'item-3.json',
     };
 
-    ApprovedNftMetadataResolver resolver({bool tamper = false}) =>
+    ApprovedNftMetadataResolver resolver({
+      bool tamper = false,
+      bool appendNewline = false,
+    }) =>
         ApprovedNftMetadataResolver(
-          fetcher: (uri, expectedBytes) async {
+          fetcher: (uri, _) async {
             final cid = uri.pathSegments.last;
             final name = fixtureNames[cid];
             if (name == null) throw StateError('Unexpected fixture request.');
             final bytes = await File('test/fixtures/v14/$name').readAsBytes();
-            expect(bytes, hasLength(expectedBytes));
+            if (appendNewline) return Uint8List.fromList([...bytes, 0x0a]);
             if (tamper) bytes[0] ^= 1;
             return bytes;
           },
@@ -46,6 +49,10 @@ void main() {
         expect(result.cid, entry.key);
         expect(result.retrievedFrom.scheme, 'https');
         expect(result.retrievedFrom.host, 'metadata.eraprojects.org');
+        expect(
+          await File('test/fixtures/v14/${entry.value}').length(),
+          kApprovedNftMetadata[entry.key]!.bytes,
+        );
         expect(result.sha256, kApprovedNftMetadata[entry.key]!.sha256);
         expect(result.json, isNotEmpty);
       }
@@ -67,6 +74,10 @@ void main() {
         );
         await expectLater(
           resolver(tamper: true).resolve('ipfs://${fixtureNames.keys.first}'),
+          throwsStateError,
+        );
+        await expectLater(
+          resolver(appendNewline: true).resolve('ipfs://${fixtureNames.keys.first}'),
           throwsStateError,
         );
       },
