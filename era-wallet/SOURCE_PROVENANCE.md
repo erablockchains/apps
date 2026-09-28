@@ -16,9 +16,9 @@ It includes the Flutter application and locked dependencies for Android, Windows
 
 The website-published Android prerelease is version 1.2.0, versionCode 3, SHA-256 `d4e1a0bb9e57813508954cc59e994ee4274d629868a7a62353947d9a71bc1cb5`. It remains published while a separate website update is held.
 
-The corrected Android build4 artifact is `era-wallet-1.2.0-build4-android-universal-prerelease.apk`, 98,627,233 bytes, SHA-256 `b0bd46a8a02a0eb5bd04f3eb1a09aca403a837b899d49b3e2133d255638e16cc`. Its package is `com.eraprojects.era_wallet`, versionCode 4, and signing-certificate SHA-256 is `19292f4dda5e588c389dcc03697e600481a0b20318d1092deaf66eec17c49e14`, identical to build3. The APK is not stored in this source subtree and is awaiting the targeted owner reward-inspection retest.
+The corrected Android build4 artifact is `era-wallet-1.2.0-build4-android-universal-prerelease.apk`, 98,627,233 bytes, SHA-256 `b0bd46a8a02a0eb5bd04f3eb1a09aca403a837b899d49b3e2133d255638e16cc`. Its package is `com.eraprojects.era_wallet`, versionCode 4, and signing-certificate SHA-256 is `19292f4dda5e588c389dcc03697e600481a0b20318d1092deaf66eec17c49e14`, identical to build3. The APK is not stored in this source subtree. The owner reports that its targeted read-only reward inspection passed on Samsung Galaxy S26 Ultra/Android 16 for era 277/page 0, displaying eligible true, points 3320, page count 1, liability 1.825271356245051407 ETKN, claimed false and expired false. No claim was reported; this owner evidence is neither an automated test nor independent qualification.
 
-The Windows build passed the recorded automated checks and owner validation. iOS and Linux source targets are included, but no current iOS/Linux release artifact or platform acceptance is claimed.
+The Windows build passed the recorded automated checks and owner validation. iOS and Linux source targets are included, but no current iOS/Linux release artifact or platform acceptance is claimed or required for V14.
 
 ## Publication boundary
 

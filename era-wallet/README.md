@@ -4,7 +4,7 @@ ERA Wallet is the Android, Windows, iOS and Linux Flutter, Material 3, local-fir
 
 The wallet is a controlled beta. V14 integration is pinned to the deployed production runtime. Automated tests and build validation never submit a production transaction. AI and AMM commissioning remain inactive.
 
-Android and Windows have current build evidence. Windows owner validation passed the requested account, QR, connectivity and read-only checks. Android checks for update/data preservation, ERA/spec15 connectivity, selected-account receiving QR and scanner behavior passed on build3; its reward inspection exposed a connection-readiness defect before eligibility was displayed. Build4 fixes that defect and retains the same package and signing identity, but the affected owner retest remains open. iOS and Linux are maintained source targets; their platform builds, packaging and device acceptance are not yet complete.
+Android and Windows have current build evidence. Windows owner validation passed the requested account, QR, connectivity and read-only checks. Android checks for update/data preservation, ERA/spec15 connectivity, selected-account receiving QR and scanner behavior passed on build3. The owner then updated to the compatible build4 and reported a passing read-only reward inspection for era 277, the approved validator and page 0, with eligible true, points 3320, page count 1, liability 1.825271356245051407 ETKN, claimed false and expired false. This is owner-performed validation, not an independently audited claim or a reward payment. The requested NFT collection remains absent until production commissioning. iOS and Linux are unverified source targets; they add no V14 acceptance gate.
 
 ## Live ERA compatibility
 
