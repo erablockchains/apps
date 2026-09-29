@@ -1,5 +1,7 @@
 # ERA Wallet Store Submission Checklist
 
+This historical checklist predates the deployed spec15 runtime and includes V13/Phase 6B testing language. Use the [current V14 store-preparation record](store-v14-preparation.md) for package identities, release scope and outstanding platform gates. Do not use this page alone as a submission claim.
+
 This project is close to store-ready, but store submission is not just a code build.
 There are code-side requirements, packaging requirements, privacy declarations, and console-side forms that must all agree with each other.
 

@@ -6,7 +6,7 @@ A Portal into the Polkadot and Substrate networks. Provides a view and interacti
 
 The [`era-wallet/`](era-wallet/) subtree contains the ERA Wallet Flutter application for Android, Windows, iOS and Linux. It is kept separate from the existing Polkadot.js packages and does not alter their build or release model. See the wallet [README](era-wallet/README.md) and [V14 source provenance](era-wallet/SOURCE_PROVENANCE.md).
 
-The ERA production runtime is deployed at specVersion 15. The V14 programme is still awaiting the corrected Android reward-reader retest, metadata persistence, NFT/allocator commissioning, the first legitimate SecurityBudget reward payment, penalty activation and independent qualification. AMM and AI predictive tokenization are inactive and deferred. Source inclusion is not a claim of programme acceptance or of iOS/Linux build acceptance.
+The ERA production runtime is deployed at specVersion 15. Metadata Phase 5 and owner-performed Android build4 read-only reward inspection have passed within their recorded scope. The V14 programme still requires NFT/allocator commissioning, the first legitimate SecurityBudget reward payment, penalty activation and independent qualification. AMM and AI predictive tokenization are inactive and deferred. Source inclusion is not a claim of programme acceptance or of iOS/Linux build acceptance. See the wallet's [store-preparation status](era-wallet/docs/store-v14-preparation.md).
 
 This can be accessed as a hosted application via https://polkadot.js.org/apps/ or you can access the IPFS hosted version via https://polkadot.js.org/apps/ipfs (via hash) or https://dotapps.io (via ipns) to explore any of the supported Polkadot and Substrate chains.
 
