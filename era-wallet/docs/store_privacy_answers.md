@@ -1,5 +1,7 @@
 # ERA Wallet Store Privacy Answers
 
+> **Historical V13/Phase 6B draft — do not submit.** Reconcile the final V14 binary, RPC/metadata service behavior and the live wallet-specific privacy notice using [the V14 store-preparation record](store-v14-preparation.md).
+
 This file is a practical starter for Play Console and App Store Connect privacy forms.
 It is based on the code in this repository as of July 17, 2026.
 

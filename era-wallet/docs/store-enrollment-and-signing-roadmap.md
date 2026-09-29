@@ -1,5 +1,7 @@
 # ERA Wallet store-enrollment and signing roadmap
 
+> **Historical enrollment plan — verify current account state.** The V14 account review found unfinished Play organization signup, Apple login and Partner Center MFA; it did not establish that a new D-U-N-S application or account purchase is required. See [the V14 store-preparation record](store-v14-preparation.md).
+
 `STORE_ENROLLMENT_STATUS: Pending organization verification and D-U-N-S processing`
 
 ERA Projects is awaiting its D-U-N-S number before completing the relevant organization-enrollment and publication processes. No approval date, application number, or store-account identifier is asserted here.

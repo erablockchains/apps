@@ -1,5 +1,7 @@
 # ERA Wallet Store Console Answers
 
+> **Historical V13/Phase 6B draft — do not submit.** Its AI functionality and form answers are not approved V14 declarations. Use [the V14 store-preparation record](store-v14-preparation.md) and review the final store forms at submission time.
+
 Last updated: July 17, 2026
 
 This file is a field-by-field starter for Google Play Console and App Store Connect.

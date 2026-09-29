@@ -1,5 +1,7 @@
 # ERA Wallet Privacy Policy
 
+> **Unpublished historical draft; not a current store privacy policy.** This text predates deployed spec15 and includes controlled AI testing descriptions. Reconcile a wallet-specific V14 notice, final binary data flows and provider practices before submission; see [V14 store preparation](store-v14-preparation.md). The live eraprojects.io privacy page is a general website policy.
+
 Last updated: July 19, 2026
 
 **LEGAL_REVIEW: REQUIRED**

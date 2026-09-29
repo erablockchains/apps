@@ -1,5 +1,7 @@
 # ERA Wallet Store Metadata
 
+> **Historical V13/Phase 6B draft — do not submit.** Its AI-market feature claims, publisher shorthand and placeholder contacts are not the V14 store listing. Use [the V14 store-preparation record](store-v14-preparation.md) for current proposed wording and remaining gates.
+
 Last updated: July 17, 2026
 
 This file contains draft submission text for Google Play and App Store Connect.
