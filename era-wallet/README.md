@@ -4,7 +4,7 @@ ERA Wallet is the Android, Windows, iOS and Linux Flutter, Material 3, local-fir
 
 The wallet is a controlled beta. V14 integration is pinned to the deployed production runtime. Automated tests and build validation never submit a production transaction. AI and AMM commissioning remain inactive.
 
-Android and Windows have current build evidence. Windows owner validation passed the requested account, QR, connectivity and read-only checks. Android checks for update/data preservation, ERA/spec15 connectivity, selected-account receiving QR and scanner behavior passed on build3. The owner then updated to the compatible build4 and reported a passing read-only reward inspection for era 277, the approved validator and page 0, with eligible true, points 3320, page count 1, liability 1.825271356245051407 ETKN, claimed false and expired false. This is owner-performed validation, not an independently audited claim or a reward payment. The requested NFT collection remains absent until production commissioning. iOS and Linux are unverified source targets; they add no V14 acceptance gate.
+Android and Windows have current build evidence. Windows owner validation passed the requested account, QR, connectivity and read-only checks. Earlier Android QR/scanner and read-only reward checks remain accepted within their tested scope. The owner reports that Play Internal build5 updated build4 in place on Samsung with accounts/settings preserved, showed ERA/spec16 and loaded commissioned collection 1/items 1–3 and the read-only reward page. This is owner-performed validation, not an independently audited claim, reward payment or spec16 signing test. iOS and Linux are unverified source targets; they add no V14 acceptance gate.
 
 ## Live ERA compatibility
 
@@ -13,9 +13,9 @@ Android and Windows have current build evidence. Windows owner validation passed
 | Endpoint | `wss://eraprojects.org/` |
 | Chain (`system_chain`) | `ERA` |
 | Genesis | `0x0abc2c3d8db5815541050b73da4d81267ebf14d90dbee8d7258155b667ea112e` |
-| Runtime | `era` spec 15, transaction version 1 |
-| Metadata | V14 SHA-256 `c188b00f3589677fe7ecfa833d92d884858ad642a6d231d52696298edbe91d40` |
-| Runtime Wasm | SHA-256 `122af167022227c46b2b74d99f5d3a73f41f8d65bb4a8a1de7b88b6e986de2af` |
+| Runtime | `era` spec 16, transaction version 1 |
+| Metadata | V14 SHA-256 `574931f693241cb62e1ad2990eda55e2250c36c9c0de852b0380eac480c8496a` |
+| Runtime Wasm | SHA-256 `bc0085ce268f447760403a3049c9e9e64b0150bdd79c0ee20490f6fab36b2b85` |
 | AI pallet | `AiPredictions` index 12, storage version 3 |
 | Token | ETKN, 18 decimals, SS58 prefix 42 |
 
@@ -25,11 +25,11 @@ ERA staking, nomination and validator selection are active. The V14 minimum vali
 
 ## V14 native assets and rewards
 
-The V14 screen reads NFT collection/item ownership and metadata at one finalized head. It accepts only the four approved `ipfs://` references and retrieves them from `https://metadata.eraprojects.org` with redirects disabled, exact length limits, strict UTF-8 JSON parsing and pinned SHA-256 hashes. It exposes reviewed `Nfts.set_price`, `buy_item`, `create_swap` and `claim_swap` calls.
+The V14 screen reads NFT collection/item ownership and metadata at one finalized head. Collection 1/items 1–3, their metadata, a restricted sale and a priced swap are accepted on chain. Metadata retrieval accepts only the four approved `ipfs://` references and uses `https://metadata.eraprojects.org` with redirects disabled, exact length limits, strict UTF-8 JSON parsing and pinned SHA-256 hashes. The app exposes reviewed `Nfts.set_price`, `buy_item`, `create_swap` and `claim_swap` calls under the spec16 gate; production app signing remains untested.
 
 The rewards route uses `SecurityBudget.claim_reward_page`; it never substitutes `Staking.payout_stakers` and never allows a caller-selected recipient. It checks active/unpaused allocation, completed and eligible era, points, budget/liability, exposure page, expiry and duplicate-claim state at a finalized head. Before any submission, the app shows the purpose, decoded arguments, signer, exact call bytes, fresh estimated fee and zero tip; it reauthenticates, rechecks V14, signs once, watches finalization and verifies post-state. Unknown outcomes remain duplicate protected for reconciliation.
 
-The historical Phase 6B AI workspace remains in the source tree but its exact spec-13 signing gate fails closed on spec15. No AI or AMM commissioning is enabled by this V14 work.
+The historical Phase 6B AI workspace remains in the source tree but its exact spec-13 signing gate fails closed on spec16. No AI or AMM commissioning is enabled by this V14 work.
 
 ## AI Predictions workspace
 
@@ -76,7 +76,7 @@ Controlled sessions record each matching finalized transaction, fee estimate, co
 
 ## Pinned metadata and bindings
 
-The V14 reproducible source is `artifacts/v14/era-spec15-metadata.scale`, not an unpinned future response. `tool/generate_v14_bindings.dart` refuses a different SHA-256, non-V14 metadata, or wrong required pallet identities. Historical Phase 6B artifacts remain for audit and legacy tests.
+The V14 reproducible source is `artifacts/v14/era-spec16-metadata.scale`, not an unpinned future response. `tool/generate_v14_bindings.dart` refuses a different SHA-256, non-V14 metadata, or wrong required pallet identities. Historical Phase 6B artifacts remain for audit and legacy tests.
 
 Regenerate and install only from that authenticated local artifact:
 

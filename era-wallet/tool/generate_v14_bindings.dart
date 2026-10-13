@@ -5,7 +5,7 @@ import 'package:polkadart_cli/polkadart_cli.dart';
 import 'package:substrate_metadata/substrate_metadata.dart';
 
 const _approvedMetadataSha256 =
-    'c188b00f3589677fe7ecfa833d92d884858ad642a6d231d52696298edbe91d40';
+    '574931f693241cb62e1ad2990eda55e2250c36c9c0de852b0380eac480c8496a';
 
 const _requiredPallets = <String, int>{
   'Balances': 2,
@@ -43,11 +43,11 @@ Future<void> main(List<String> arguments) async {
   final workspace = await _requireProjectRoot();
   final metadataFile = File(
     '$workspace${Platform.pathSeparator}artifacts${Platform.pathSeparator}'
-    'v14${Platform.pathSeparator}era-spec15-metadata.scale',
+    'v14${Platform.pathSeparator}era-spec16-metadata.scale',
   );
   if (!await metadataFile.exists()) {
     throw StateError(
-      'The authenticated ERA spec15 metadata artifact is missing.',
+      'The authenticated ERA spec16 metadata artifact is missing.',
     );
   }
 
@@ -62,7 +62,7 @@ Future<void> main(List<String> arguments) async {
 
   final prefixed = RuntimeMetadataPrefixed.fromBytes(bytes);
   if (prefixed.metadata.runtimeMetadataVersion() != 14) {
-    throw StateError('ERA spec15 bindings require metadata V14.');
+    throw StateError('ERA spec16 bindings require metadata V14.');
   }
   for (final entry in _requiredPallets.entries) {
     final matches = prefixed.metadata.pallets.where(
@@ -147,7 +147,7 @@ Future<void> main(List<String> arguments) async {
     rethrow;
   }
 
-  stdout.writeln('Generated ERA spec15 bindings at ${output.path}');
+  stdout.writeln('Generated ERA spec16 bindings at ${output.path}');
   stdout.writeln('Metadata SHA-256: $hash');
 }
 

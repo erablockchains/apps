@@ -1,5 +1,7 @@
 # ERA Wallet V14 store submission — preparation, not a listing
 
+> **2026-10-12 build5 status.** ERA runs specVersion 16. The isolated wallet source commit `0bee61802b5ad68f1aed453ef8c70d5cc3f064b2` produced Play Internal testing `1.2.0+5` AAB SHA-256 `7458b075f9ceaf047e918ba23e4e2baca76844048f537085c8be572fec5c2058`; its signing certificate matches build4. The owner reports an in-place Play update on Samsung with accounts/settings preserved and successful spec16, NFT collection 1/items 1–3 and read-only reward checks. This is owner-performed, not independent or signing-path acceptance. NFT collection/metadata, sale and priced swap are commissioned on chain; reward-payment verification, penalty activation and independent qualification remain open. Production Play submission is held at the unchecked worldwide legal declaration pending Google's clarification (cases `2-4960000041229`, `8-1930000042002`) and company review. The build4 and spec15 details below are historical preparation evidence, not current deployment or Play Internal status.
+
 The intended publisher is **ERA Projects Development LLC**. This source tree contains Android, Windows, iOS and Linux targets; platform source presence does not establish a distributable or accepted binary. The production network runs `era` specVersion 15. NFT/allocator production commissioning, a legitimate SecurityBudget reward payment, penalty activation and independent qualification remain open. AMM and AI predictive tokenization are inactive and deferred.
 
 ## Exact candidate and evidence
