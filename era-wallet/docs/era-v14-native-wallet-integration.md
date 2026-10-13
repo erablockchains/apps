@@ -1,5 +1,7 @@
 # ERA V14 native wallet integration
 
+> **2026-10-12 spec16 build5 addendum.** The deployed runtime is spec16. Build5 pins metadata SHA-256 `574931f693241cb62e1ad2990eda55e2250c36c9c0de852b0380eac480c8496a` from finalized block 334622 and deployed Wasm SHA-256 `bc0085ce268f447760403a3049c9e9e64b0150bdd79c0ee20490f6fab36b2b85`; generated bindings come from `artifacts/v14/era-spec16-metadata.scale`. Collection 1/items 1–3, their metadata, a restricted 1 ETKN sale and a 0.1 ETKN priced swap were accepted on chain. Build5 passed analysis, 183 Flutter tests, a live read-only gate and Android/Windows release builds. Play Internal testing has the signed build5 AAB; the owner reports an in-place Samsung update preserving accounts/settings and passing spec16, NFT and read-only reward checks. This is not a production signing or independent test. Website build4 remains pinned to spec15 for signing. No production app transaction is used as a routine test. The September 25 spec15 notes below document the earlier release and should not be read as current deployment status.
+
 **Scope date:** 2026-09-25  
 **Native targets:** Android package `com.eraprojects.era_wallet`; Windows x64 `era_wallet.exe`  
 **Development branch:** `dev/v14-native-wallet-20260925`

@@ -16,7 +16,8 @@ enum Error {
   allocationFailed('AllocationFailed', 8),
   reentrant('Reentrant', 9),
   nativeCursorAhead('NativeCursorAhead', 10),
-  unsupported('Unsupported', 11);
+  unsupported('Unsupported', 11),
+  legacyCreationNotClosed('LegacyCreationNotClosed', 12);
 
   const Error(this.variantName, this.codecIndex);
 
@@ -68,6 +69,8 @@ class $ErrorCodec with _i1.Codec<Error> {
         return Error.nativeCursorAhead;
       case 11:
         return Error.unsupported;
+      case 12:
+        return Error.legacyCreationNotClosed;
       default:
         throw Exception('Error: Invalid variant index: "$index"');
     }

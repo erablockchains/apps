@@ -12,16 +12,16 @@ const String kEraChainDisplayName = 'ERA';
 const String kEraGenesisHash =
     '0x0abc2c3d8db5815541050b73da4d81267ebf14d90dbee8d7258155b667ea112e';
 const String kEraSpecName = 'era';
-const int kEraSpecVersion = 15;
+const int kEraSpecVersion = 16;
 const int kEraTransactionVersion = 1;
 const String kEraTokenSymbol = 'ETKN';
 const int kEraTokenDecimals = 18;
 const int kEraSs58Prefix = 42;
 const int kEraMetadataVersion = 14;
 const String kEraMetadataSha256 =
-    'c188b00f3589677fe7ecfa833d92d884858ad642a6d231d52696298edbe91d40';
+    '574931f693241cb62e1ad2990eda55e2250c36c9c0de852b0380eac480c8496a';
 const String kEraRuntimeWasmSha256 =
-    '122af167022227c46b2b74d99f5d3a73f41f8d65bb4a8a1de7b88b6e986de2af';
+    'bc0085ce268f447760403a3049c9e9e64b0150bdd79c0ee20490f6fab36b2b85';
 
 const String kEraStakingRewardNotice =
     'ERA staking, nomination and validator selection are active. V14 rewards '

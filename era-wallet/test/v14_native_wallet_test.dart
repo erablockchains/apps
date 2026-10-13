@@ -84,7 +84,7 @@ void main() {
     );
   });
 
-  group('spec15 native operation bindings', () {
+  group('spec16 native operation bindings', () {
     final provider = _NoopProvider();
     final api = era_api.Era(provider);
     final calls = V14CallFactory(api);

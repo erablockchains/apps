@@ -19,7 +19,7 @@ void main() {
         chainName: 'ERA',
         genesisHash: kEraGenesisHash,
         specName: 'era',
-        specVersion: 15,
+        specVersion: 16,
         transactionVersion: 1,
         tokenSymbol: 'ETKN',
         tokenDecimals: 18,
@@ -55,12 +55,26 @@ void main() {
       );
     });
 
+    test('rejects the previously accepted spec15 runtime after cutover', () {
+      const oldRuntime = EraV14RuntimeIdentity(
+        chainName: 'ERA',
+        genesisHash: kEraGenesisHash,
+        specName: 'era',
+        specVersion: 15,
+        transactionVersion: 1,
+        tokenSymbol: 'ETKN',
+        tokenDecimals: 18,
+        ss58Prefix: 42,
+      );
+      expect(oldRuntime.verify, throwsA(isA<EraV14CompatibilityException>()));
+    });
+
     test('rejects an incorrect production chain name', () {
       const wrongChain = EraV14RuntimeIdentity(
         chainName: 'ERA-MAINNET',
         genesisHash: kEraGenesisHash,
         specName: 'era',
-        specVersion: 15,
+        specVersion: 16,
         transactionVersion: 1,
         tokenSymbol: 'ETKN',
         tokenDecimals: 18,
@@ -81,7 +95,7 @@ void main() {
 
     test('accepts the pinned metadata and required wallet surface', () async {
       final bytes = File(
-        'artifacts/v14/era-spec15-metadata.scale',
+        'artifacts/v14/era-spec16-metadata.scale',
       ).readAsBytesSync();
       final surface = await EraV14RuntimeGuard.inspectMetadata(bytes);
 
@@ -109,7 +123,7 @@ void main() {
 
     test('refuses stale metadata with a clear compatibility error', () async {
       final bytes = File(
-        'artifacts/v14/era-spec15-metadata.scale',
+        'artifacts/v14/era-spec16-metadata.scale',
       ).readAsBytesSync();
       bytes[bytes.length - 1] ^= 1;
 

@@ -16,6 +16,13 @@ class Queries {
 
   final _i1.StateApi __api;
 
+  final _i1.StorageValue<int> _legacyCreationClosedAt =
+      const _i1.StorageValue<int>(
+        prefix: 'EraV14AssetAllocator',
+        storage: 'LegacyCreationClosedAt',
+        valueCodec: _i2.U32Codec.codec,
+      );
+
   final _i1.StorageValue<int> _schemaVersion = const _i1.StorageValue<int>(
     prefix: 'EraV14AssetAllocator',
     storage: 'SchemaVersion',
@@ -105,6 +112,15 @@ class Queries {
           _i2.U32Codec.codec,
         ),
       );
+
+  _i6.Future<int?> legacyCreationClosedAt({_i1.BlockHash? at}) async {
+    final hashedKey = _legacyCreationClosedAt.hashedKey();
+    final bytes = await __api.getStorage(hashedKey, at: at);
+    if (bytes != null) {
+      return _legacyCreationClosedAt.decodeValue(bytes);
+    }
+    return null; /* Nullable */
+  }
 
   _i6.Future<int?> schemaVersion({_i1.BlockHash? at}) async {
     final hashedKey = _schemaVersion.hashedKey();
@@ -281,6 +297,12 @@ class Queries {
           .toList();
     }
     return []; /* Nullable */
+  }
+
+  /// Returns the storage key for `legacyCreationClosedAt`.
+  _i7.Uint8List legacyCreationClosedAtKey() {
+    final hashedKey = _legacyCreationClosedAt.hashedKey();
+    return hashedKey;
   }
 
   /// Returns the storage key for `schemaVersion`.
