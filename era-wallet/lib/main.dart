@@ -683,44 +683,33 @@ class _FirstRunSplashScreenState extends State<FirstRunSplashScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Luxury beach + yachts background
-          Image.asset(
-            'assets/images/splash_luxury_beach.png',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.black.withValues(alpha: 0.25)),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(kEraIconPath, width: 96, height: 96),
-                const SizedBox(height: 24),
-                Text(
-                  'ERA Wallet',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your private island for digital assets.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ],
+      backgroundColor: const Color(0xFFF7F9FC),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(kEraIconPath, width: 96, height: 96),
+            const SizedBox(height: 24),
+            Text(
+              'ERA Wallet',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Your private island for digital assets.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(height: 40),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0)),
+            ),
+          ],
+        ),
       ),
     );
   }
