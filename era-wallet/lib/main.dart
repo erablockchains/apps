@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
 import 'account_qr_dialog.dart';
+import 'wallet_crypto_worker.dart';
 import 'config.dart';
 import 'era_v14_compatibility.dart';
 import 'generated/era/era.dart' as era_api;
@@ -332,12 +333,11 @@ class AccountManager with ChangeNotifier {
     required String name,
     String? mnemonic,
   }) async {
-    final keyring = Keyring();
     final String finalMnemonic = (mnemonic == null || mnemonic.trim().isEmpty)
         ? bip39.generateMnemonic()
         : mnemonic.trim();
 
-    final pair = await keyring.fromMnemonic(finalMnemonic);
+    final pair = await deriveWalletKeyPair(finalMnemonic);
 
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final acc = WalletAccount(id: id, name: name, address: pair.address);
@@ -1987,7 +1987,7 @@ class TxService {
     await EraV14RuntimeGuard(provider).verify();
     try {
       final keyring = Keyring();
-      final wallet = await keyring.fromMnemonic(fromMnemonic.trim());
+      final wallet = await deriveWalletKeyPair(fromMnemonic.trim());
       final signerAddress = wallet.address;
 
       debugPrint('FEE: estimating for signer: $signerAddress');
@@ -2029,7 +2029,7 @@ class TxService {
       ).encode(api.registry);
 
       // 5) Real signature – we’re using the actual key here
-      final signature = wallet.sign(payload);
+      final signature = await signWalletPayload(wallet, payload);
 
       // 6) Build full extrinsic bytes
       final extrinsicBytes = polkadart.ExtrinsicPayload(
@@ -2079,7 +2079,7 @@ class TxService {
   }) async {
     await EraV14RuntimeGuard(provider).verify();
     final keyring = Keyring();
-    final wallet = await keyring.fromMnemonic(fromMnemonic.trim());
+    final wallet = await deriveWalletKeyPair(fromMnemonic.trim());
     final signerAddress = wallet.address;
 
     debugPrint('TxService.sendTransfer -> signer: $signerAddress');
@@ -2122,7 +2122,7 @@ class TxService {
     ).encode(api.registry);
 
     // 5) Sign payload
-    final signature = wallet.sign(payload);
+    final signature = await signWalletPayload(wallet, payload);
 
     // 6) Build final extrinsic and encode
     final extrinsic = polkadart.ExtrinsicPayload(
@@ -2311,8 +2311,7 @@ class _SendScreenState extends State<SendScreen> {
       }
 
       // Double-check that mnemonic really matches the active address
-      final keyring = Keyring();
-      final signerWallet = await keyring.fromMnemonic(trimmedMnemonic);
+      final signerWallet = await deriveWalletKeyPair(trimmedMnemonic);
       final signerAddress = signerWallet.address;
 
       if (signerAddress != acc.address) {
@@ -2397,8 +2396,7 @@ class _SendScreenState extends State<SendScreen> {
         return null;
       }
 
-      final keyring = Keyring();
-      final wallet = await keyring.fromMnemonic(trimmed);
+      final wallet = await deriveWalletKeyPair(trimmed);
       final derivedAddress = wallet.address;
 
       debugPrint('SEND: legacy mnemonic address: $derivedAddress');
@@ -2519,8 +2517,7 @@ class _SendScreenState extends State<SendScreen> {
         return;
       }
 
-      final keyring = Keyring();
-      final signerWallet = await keyring.fromMnemonic(trimmedMnemonic);
+      final signerWallet = await deriveWalletKeyPair(trimmedMnemonic);
       final signerAddress = signerWallet.address;
 
       debugPrint('SEND: UI active address: ${acc.address}');
@@ -2962,7 +2959,7 @@ class _StakingScreenState extends State<StakingScreen> {
       tip: 0,
     ).encode(api.registry);
 
-    final signature = wallet.sign(payload);
+    final signature = await signWalletPayload(wallet, payload);
 
     final extrinsic = polkadart.ExtrinsicPayload(
       signer: wallet.bytes(),
@@ -3071,7 +3068,7 @@ class _StakingScreenState extends State<StakingScreen> {
         return;
       }
 
-      final wallet = await keyring.fromMnemonic(trimmedMnemonic);
+      final wallet = await deriveWalletKeyPair(trimmedMnemonic);
       if (!mounted) return;
       final signerAddress = wallet.address;
       if (signerAddress != acc.address) {
@@ -3271,7 +3268,7 @@ class _StakingScreenState extends State<StakingScreen> {
         return;
       }
 
-      final wallet = await keyring.fromMnemonic(trimmedMnemonic);
+      final wallet = await deriveWalletKeyPair(trimmedMnemonic);
       if (!mounted) return;
       final signerAddress = wallet.address;
       if (signerAddress != acc.address) {
