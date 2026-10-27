@@ -1,10 +1,64 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:era_wallet/main.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:polkadart/polkadart.dart' as polkadart;
 
 void main() {
+  test('stalled connect and cleanup reach a bounded retryable error', () {
+    fakeAsync((clock) {
+      final stalled = _FakeProvider(
+        onSend: (_, _) async => polkadart.RpcResponse(id: 1, result: 'ERA'),
+        onConnect: () => Completer<void>().future,
+        onDisconnect: () => Completer<void>().future,
+      );
+      final healthy = _FakeProvider(
+        onSend: (_, _) async => polkadart.RpcResponse(id: 2, result: 'ERA'),
+      );
+      final providers = [stalled, healthy];
+      final wallet = EraWalletProvider(
+        providerFactory: (_) => providers.removeAt(0),
+      );
+      var completed = false;
+      wallet.connect().then((_) => completed = true);
+      clock.flushMicrotasks();
+      clock.elapse(const Duration(seconds: 23));
+      clock.flushMicrotasks();
+      expect(completed, isTrue);
+      expect(wallet.connectionState, WalletConnectionState.error);
+      expect(wallet.connectionError, contains('TimeoutException'));
+      expect(wallet.provider, isNull);
+      wallet.connect();
+      clock.flushMicrotasks();
+      expect(wallet.connectionState, WalletConnectionState.connected);
+      expect(wallet.provider, same(healthy));
+    });
+  });
+
+  test(
+    'real websocket closing before readiness has no unhandled constructor Future',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        request.response.statusCode = HttpStatus.serviceUnavailable;
+        await request.response.close();
+      });
+      final wallet = EraWalletProvider();
+      try {
+        await wallet.connect(wsEndpoint: 'ws://127.0.0.1:${server.port}');
+        expect(wallet.connectionState, WalletConnectionState.error);
+        expect(wallet.provider, isNull);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      } finally {
+        await wallet.disconnect();
+        await server.close(force: true);
+      }
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
+  );
+
   test(
     'does not expose a connected wallet before the ERA RPC is ready',
     () async {
@@ -71,7 +125,10 @@ void main() {
 }
 
 class _FakeProvider extends polkadart.Provider {
-  _FakeProvider({required this.onSend});
+  _FakeProvider({required this.onSend, this.onConnect, this.onDisconnect});
+
+  final Future<void> Function()? onConnect;
+  final Future<void> Function()? onDisconnect;
 
   final Future<polkadart.RpcResponse> Function(
     String method,
@@ -82,11 +139,14 @@ class _FakeProvider extends polkadart.Provider {
   int disconnectCount = 0;
 
   @override
-  Future<void> connect() async {}
+  Future<void> connect() async {
+    await onConnect?.call();
+  }
 
   @override
   Future<void> disconnect() async {
     disconnectCount++;
+    await onDisconnect?.call();
   }
 
   @override

@@ -404,7 +404,16 @@ enum WalletConnectionState { disconnected, connecting, connected, error }
 
 class EraWalletProvider extends ChangeNotifier {
   EraWalletProvider({EraProviderFactory? providerFactory})
-    : _providerFactory = providerFactory ?? polkadart.Provider.fromUri;
+    : _providerFactory = providerFactory ?? _createProvider;
+
+  static polkadart.Provider _createProvider(Uri endpoint) {
+    // WsProvider's default constructor starts an unawaited connect Future.
+    // Own that Future so offline/timeout failures reach the visible retry state.
+    if (endpoint.scheme == 'ws' || endpoint.scheme == 'wss') {
+      return polkadart.WsProvider(endpoint, autoConnect: false);
+    }
+    return polkadart.Provider.fromUri(endpoint);
+  }
 
   static const String defaultWsEndpoint = kDefaultEraWsEndpoint;
   final EraProviderFactory _providerFactory;
@@ -442,7 +451,7 @@ class EraWalletProvider extends ChangeNotifier {
   Future<void> _connectInternal({String? wsEndpoint}) async {
     if (_provider != null) {
       try {
-        await _provider!.disconnect();
+        await _provider!.disconnect().timeout(const Duration(seconds: 2));
       } catch (_) {}
       _provider = null;
       _api = null;
@@ -451,6 +460,7 @@ class EraWalletProvider extends ChangeNotifier {
     polkadart.Provider? freshProvider;
     try {
       freshProvider = _providerFactory(Uri.parse(endpoint));
+      await freshProvider.connect().timeout(const Duration(seconds: 20));
       if (!await _isReadyEraProvider(freshProvider)) {
         throw StateError('ERA RPC readiness check failed.');
       }
@@ -464,7 +474,7 @@ class EraWalletProvider extends ChangeNotifier {
     } catch (e) {
       if (freshProvider != null) {
         try {
-          await freshProvider.disconnect();
+          await freshProvider.disconnect().timeout(const Duration(seconds: 2));
         } catch (_) {}
       }
       _provider = null;
@@ -496,7 +506,7 @@ class EraWalletProvider extends ChangeNotifier {
   Future<void> disconnect() async {
     if (_provider != null) {
       try {
-        await _provider!.disconnect();
+        await _provider!.disconnect().timeout(const Duration(seconds: 2));
       } catch (_) {}
       _provider = null;
     }
