@@ -1,4 +1,4 @@
-"""Read-only provenance gate for manual, unsigned ERA iOS builds."""
+"""Read-only provenance gate for manual ERA iOS builds."""
 
 import argparse
 import json
@@ -67,7 +67,7 @@ def main():
     )
     receipt = {"repository": REPOSITORY, "source_sha": sha, "build9_ancestor": BUILD9,
                "version": version, "team": TEAM, "bundle_id": BUNDLE,
-               "scope": "unsigned build validation only; not App Review qualification"}
+               "scope": "source provenance only; not signed-app or App Review qualification"}
     print(json.dumps(receipt, indent=2))
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
