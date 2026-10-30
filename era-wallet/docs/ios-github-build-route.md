@@ -32,7 +32,8 @@ After workflow review/merge:
 3. The Linux preflight checks public visibility, ancestry from the recorded build9
    commit, version 1.2.0 build9-or-later, Apple team `D2F9K652YH`, bundle identifier
    `com.eraprojects.erawallet` and display-name casing before scheduling macOS.
-4. The standard `macos-15` job uses Flutter 3.41.9 / Dart 3.11.5. The official
+4. The standard `macos-26` job requires Xcode and iOS SDK 26 or later, as Apple
+   currently requires for iOS uploads. It uses Flutter 3.41.9 / Dart 3.11.5. The official
    Intel and Apple Silicon SDK ZIPs are SHA-256 pinned, as is the Flutter Git
    identity. It records Xcode/iOS SDK versions, enforces the Dart lockfile, analyzes,
    runs existing synthetic tests and compiles release and simulator apps.

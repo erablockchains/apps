@@ -35,7 +35,7 @@ jobs:
 
   unsigned-ios:
     needs: provenance
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     env:
       CI: 'true'
@@ -56,7 +56,11 @@ jobs:
           sw_vers
           uname -m
           xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
+          xcode_version="$(xcodebuild -version | sed -n '1s/^Xcode //p')"
+          test "${xcode_version%%.*}" -ge 26
+          ios_sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          printf 'iOS SDK %s\n' "$ios_sdk"
+          test "${ios_sdk%%.*}" -ge 26
           pod --version
       - name: Install checksum-pinned Flutter 3.41.9
         run: |
