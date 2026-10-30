@@ -1,7 +1,7 @@
 # ERA Wallet: GitHub-hosted macOS build route
 
-Preparation date: 30 October 2026. This document adds an **unsigned compilation
-workflow**, not a signed release or evidence of App Store eligibility.
+Preparation date: 30 October 2026. The published source and unsigned CI validate
+compilation; they do not qualify a signed release or establish App Store eligibility.
 
 ## Reviewed source
 
@@ -24,7 +24,17 @@ The manually dispatched workflow is `.github/workflows/era-wallet-ios-validation
 It must be available on the default branch for normal manual-dispatch discovery.
 It has no push/PR triggers, no signing secrets and no TestFlight/App Review upload.
 
-After workflow review/merge:
+Workflow PR #2 merged as `9ce64d8599a17a3e3a373103028bb1c8116b7b30`.
+PR #4 moved the standard runner to `macos-26` as
+`2a74b7770b18d6e3f57a0bc5d4e8c8d2a2f757a9`. The validated run is
+https://github.com/erablockchains/apps/actions/runs/41096913139 : Xcode 26.6,
+iOS SDK 26.5, locked dependencies, analysis and tests passed; both unsigned
+device release and simulator apps compiled. An earlier run
+https://github.com/erablockchains/apps/actions/runs/41076939070 also passed but
+used Xcode 16.4, which does not meet Apple's current upload toolchain requirement.
+Neither run signed an IPA or uploaded to Apple.
+
+For further unsigned validation:
 
 1. Open Actions > ERA Wallet iOS unsigned validation > Run workflow.
 2. Supply the **full 40-character reviewed iOS commit SHA**. Do not supply a branch
@@ -50,21 +60,27 @@ policy. Larger runners are not used. No caches or artifact uploads are configure
 storage allowances and overage billing are separate from compute. Existing unrelated
 repository workflows/billing remain outside this change.
 
-## Protected signing and TestFlight: next stage
+## Protected signing and TestFlight
 
-Do not provide Apple credentials in chat, source, PR comments or job inputs. Before
-adding a separate signed workflow:
+Do not provide Apple credentials in chat, source, PR comments or job inputs. A
+separate manual signed workflow is `.github/workflows/era-wallet-ios-testflight.yml`.
+The GitHub `apple-release` environment is limited to deployments from `master`
+and requires review by the `erablockchains` account. No secrets have been stored
+and the signed workflow has not been run. Before dispatching it:
 
-- Configure a protected `apple-release` environment restricted to the reviewed
-  release branch/tag, with owner approval for access to credentials.
 - Determine whether an existing Apple Distribution signing identity/profile can be
   used or whether one must be generated. An App Store Connect API `.p8` key is
   **not** the distribution certificate/private key used to sign the app.
-- Supply the minimally scoped App Store Connect API key, Key ID and Issuer ID
-  through protected environment secrets. Supply the distribution `.p12`, its
-  password and matching provisioning profile through protected secrets when using
-  manual signing. Confirm Team `D2F9K652YH`, bundle `com.eraprojects.erawallet` and
-  App Store Connect app `6828776691` agree.
+- In GitHub repository Settings > Environments > `apple-release`, store these
+  **environment** secrets through the owner's credential workflow:
+  `APPLE_DISTRIBUTION_P12_BASE64` (base64 of Apple Distribution PKCS#12 including
+  its private key), `APPLE_DISTRIBUTION_P12_PASSWORD`,
+  `APPLE_APPSTORE_PROFILE_BASE64` (base64 of the App Store distribution profile),
+  `APPLE_ASC_KEY_ID`, `APPLE_ASC_ISSUER_ID`, and `APPLE_ASC_API_KEY_P8_BASE64`
+  (base64 of a suitable App Store Connect API key). The first three permit signing;
+  the last three are additionally required for upload. Do not place values in this
+  document or ask for them in chat. Confirm Team `D2F9K652YH`, bundle
+  `com.eraprojects.erawallet` and App Store Connect app `6828776691` agree.
 - Use a temporary runner keychain and provisioning installation, remove them in
   an unconditional cleanup step, and exclude all credential material from logs,
   caches and artifacts. Pin any additional actions to reviewed commit SHAs.
@@ -72,6 +88,15 @@ adding a separate signed workflow:
   entitlements and installed signing identity. Upload to TestFlight only through
   that separate, explicitly reviewed stage. Do not automate public App Review
   submission as a side effect of a source push.
+
+The manual dispatch takes a unique numeric build number (10 or higher) and an
+`upload_testflight` flag, default false. Check App Store Connect for any already
+used build number before dispatch. The workflow pins the reviewed source commit
+and uses the same checksum-pinned Flutter toolchain as unsigned CI. The owner
+reviews the protected environment job before credentials become accessible.
+Successful upload command is not proof of TestFlight processing; verify the build
+in App Store Connect separately. A public repository must not publish the IPA as
+an Actions artifact. The workflow deliberately does not retain one.
 
 Then qualify the **signed iOS app** on an actual device, including keychain/PIN,
 create/import, the corrected crypto work, RPC failures, background/resume and

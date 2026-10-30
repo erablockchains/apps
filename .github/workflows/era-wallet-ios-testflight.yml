@@ -1,0 +1,212 @@
+name: ERA Wallet iOS signed build and optional TestFlight upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: Unique iOS CFBundleVersion (10 or higher; check App Store Connect before upload)
+        required: true
+        type: string
+      upload_testflight:
+        description: Validate and upload the signed IPA to TestFlight after archive checks
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: era-wallet-ios-signed-release
+  cancel-in-progress: false
+
+jobs:
+  provenance:
+    if: github.repository == 'erablockchains/apps' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ERA_SOURCE_SHA: e9828f3a15816d60f73ebd3627109a483d55e8e3
+      BUILD_NUMBER: ${{ inputs.build_number }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Verify exact reviewed source and build number
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify-era-ios-source.py --source-sha "$ERA_SOURCE_SHA"
+          [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]
+          test "$BUILD_NUMBER" -ge 10
+
+  signed-ios:
+    needs: provenance
+    runs-on: macos-26
+    environment: apple-release
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      FLUTTER_SUPPRESS_ANALYTICS: 'true'
+      ERA_SOURCE_SHA: e9828f3a15816d60f73ebd3627109a483d55e8e3
+      BUILD_NUMBER: ${{ inputs.build_number }}
+    defaults:
+      run:
+        working-directory: era-wallet
+        shell: bash
+    steps:
+      - name: Check out exact reviewed source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: e9828f3a15816d60f73ebd3627109a483d55e8e3
+          persist-credentials: false
+      - name: Verify App Store build toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcode_version="$(xcodebuild -version | sed -n '1s/^Xcode //p')"
+          test "${xcode_version%%.*}" -ge 26
+          ios_sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          test "${ios_sdk%%.*}" -ge 26
+          printf 'iOS SDK %s\n' "$ios_sdk"
+      - name: Install checksum-pinned Flutter 3.41.9
+        run: |
+          set -euo pipefail
+          case "$(uname -m)" in
+            arm64) archive=flutter_macos_arm64_3.41.9-stable.zip; digest=d692b030a63466c44d6b2bc88583380371ecbe328f22cc4057835f59739821a1 ;;
+            x86_64) archive=flutter_macos_3.41.9-stable.zip; digest=eaee3b6aa6da114eb0be843ac53f4f138d3d8827779ff1e4546b345c75b9cba1 ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --location --retry 2 --max-time 900 \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/$archive" \
+            --output "$RUNNER_TEMP/flutter-sdk.zip"
+          printf '%s  %s\n' "$digest" "$RUNNER_TEMP/flutter-sdk.zip" | shasum -a 256 --check
+          mkdir -p "$RUNNER_TEMP/era-flutter"
+          ditto -x -k "$RUNNER_TEMP/flutter-sdk.zip" "$RUNNER_TEMP/era-flutter"
+          rm "$RUNNER_TEMP/flutter-sdk.zip"
+          test "$(git -C "$RUNNER_TEMP/era-flutter/flutter" rev-parse HEAD)" = 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
+          echo "$RUNNER_TEMP/era-flutter/flutter/bin" >> "$GITHUB_PATH"
+      - name: Resolve locked dependencies and test
+        run: |
+          set -euo pipefail
+          flutter config --no-analytics
+          dart --disable-analytics
+          flutter precache --ios
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test
+      - name: Install distribution identity and profile in temporary keychain
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_APPSTORE_PROFILE_BASE64: ${{ secrets.APPLE_APPSTORE_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$APPLE_DISTRIBUTION_P12_BASE64"
+          test -n "$APPLE_DISTRIBUTION_P12_PASSWORD"
+          test -n "$APPLE_APPSTORE_PROFILE_BASE64"
+          keychain="$RUNNER_TEMP/era-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 32)"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 7200 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          printf '%s' "$APPLE_DISTRIBUTION_P12_BASE64" | base64 -D > "$RUNNER_TEMP/distribution.p12"
+          printf '%s' "$APPLE_APPSTORE_PROFILE_BASE64" | base64 -D > "$RUNNER_TEMP/appstore.mobileprovision"
+          security import "$RUNNER_TEMP/distribution.p12" -k "$keychain" -P "$APPLE_DISTRIBUTION_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain"
+          security find-identity -v -p codesigning "$keychain" | grep -q 'Apple Distribution:'
+          security cms -D -i "$RUNNER_TEMP/appstore.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          profile_team="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$RUNNER_TEMP/profile.plist")"
+          profile_app="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/profile.plist")"
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/profile.plist")"
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist")"
+          test "$profile_team" = D2F9K652YH
+          test "$profile_app" = D2F9K652YH.com.eraprojects.erawallet
+          python3 - <<'PY'
+          import datetime, os, plistlib
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'profile.plist'), 'rb') as f:
+              expiry = plistlib.load(f)['ExpirationDate']
+          assert expiry > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+          PY
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/appstore.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
+          printf '%s' "$profile_uuid" > "$RUNNER_TEMP/profile-uuid.txt"
+          printf '%s' "$profile_name" > "$RUNNER_TEMP/profile-name.txt"
+          PROFILE_NAME="$profile_name" python3 - <<'PY'
+          import os, plistlib
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'ExportOptions.plist'), 'wb') as f:
+              plistlib.dump({'method':'app-store-connect','teamID':'D2F9K652YH',
+                             'signingStyle':'manual',
+                             'provisioningProfiles':{'com.eraprojects.erawallet':os.environ['PROFILE_NAME']}}, f)
+          PY
+      - name: Build signed IPA and verify archive identity
+        run: |
+          set -euo pipefail
+          flutter build ios --release --config-only --no-codesign \
+            --build-name=1.2.0 --build-number="$BUILD_NUMBER"
+          profile_name="$(cat "$RUNNER_TEMP/profile-name.txt")"
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ERA-Wallet.xcarchive" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
+            PROVISIONING_PROFILE_SPECIFIER="$profile_name" \
+            DEVELOPMENT_TEAM=D2F9K652YH archive
+          mkdir -p build/ios/ipa
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/ERA-Wallet.xcarchive" \
+            -exportPath build/ios/ipa -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+          ipa="$(find build/ios/ipa -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          test -n "$ipa"
+          mkdir -p "$RUNNER_TEMP/ipa-check"
+          ditto -x -k "$ipa" "$RUNNER_TEMP/ipa-check"
+          app="$RUNNER_TEMP/ipa-check/Payload/Runner.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = com.eraprojects.erawallet
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Info.plist")" = 1.2.0
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")" = "$BUILD_NUMBER"
+          codesign --verify --deep --strict "$app"
+          codesign -d --entitlements :- "$app" > "$RUNNER_TEMP/entitlements.plist" 2>/dev/null
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$RUNNER_TEMP/entitlements.plist")" = D2F9K652YH
+          shasum -a 256 "$ipa"
+          {
+            echo '## Signed ERA Wallet iOS archive'
+            printf 'Source: `%s`; version: `1.2.0`; build: `%s`\n\n' "$ERA_SOURCE_SHA" "$BUILD_NUMBER"
+            xcodebuild -version
+            echo
+            shasum -a 256 "$ipa"
+            echo
+            echo 'Bundle, version, team entitlement and code signature verified; physical-device qualification remains separate.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Validate and upload to TestFlight
+        if: inputs.upload_testflight
+        env:
+          APPLE_ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+          APPLE_ASC_API_KEY_P8_BASE64: ${{ secrets.APPLE_ASC_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$APPLE_ASC_KEY_ID"
+          test -n "$APPLE_ASC_ISSUER_ID"
+          test -n "$APPLE_ASC_API_KEY_P8_BASE64"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          keyfile="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_ASC_KEY_ID}.p8"
+          printf '%s' "$APPLE_ASC_API_KEY_P8_BASE64" | base64 -D > "$keyfile"
+          chmod 600 "$keyfile"
+          ipa="$(find build/ios/ipa -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          xcrun altool --validate-app --type ios -f "$ipa" --apiKey "$APPLE_ASC_KEY_ID" --apiIssuer "$APPLE_ASC_ISSUER_ID"
+          xcrun altool --upload-app --type ios -f "$ipa" --apiKey "$APPLE_ASC_KEY_ID" --apiIssuer "$APPLE_ASC_ISSUER_ID"
+          echo 'Apple accepted the upload command. Verify App Store Connect processing and TestFlight status separately.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove signing files and temporary keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/era-signing.keychain-db" 2>/dev/null || true
+          if test -s "$RUNNER_TEMP/profile-uuid.txt"; then
+            profile_uuid="$(cat "$RUNNER_TEMP/profile-uuid.txt")"
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
+          fi
+          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/appstore.mobileprovision" \
+            "$RUNNER_TEMP/profile.plist" "$RUNNER_TEMP/profile-name.txt" "$RUNNER_TEMP/profile-uuid.txt" \
+            "$RUNNER_TEMP/ExportOptions.plist" "$RUNNER_TEMP/entitlements.plist"
+          rm -rf "$RUNNER_TEMP/ipa-check" "$RUNNER_TEMP/ERA-Wallet.xcarchive" \
+            "$HOME/.appstoreconnect/private_keys"
+          rm -rf build/ios/ipa
+
+# Manual dispatch only. No source-push trigger, binary artifact, cache or public App Review submission.
