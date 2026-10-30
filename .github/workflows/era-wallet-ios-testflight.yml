@@ -114,12 +114,15 @@ jobs:
           printf '%s' "$APPLE_APPSTORE_PROFILE_BASE64" | base64 -D > "$RUNNER_TEMP/appstore.mobileprovision"
           # Windows' AES-256/SHA-256 P12 passed local validation but Security.framework
           # rejected its MAC. Rewrap only on this temporary runner for Keychain import.
-          # The unencrypted PEM stream stays in the pipe; no key file or artifact is kept.
+          # Only the public certificate touches disk; the PEM private key stays in the pipe.
           openssl pkcs12 -in "$RUNNER_TEMP/distribution.p12" -noout \
             -passin env:APPLE_DISTRIBUTION_P12_PASSWORD
-          openssl pkcs12 -in "$RUNNER_TEMP/distribution.p12" -nodes \
+          openssl pkcs12 -in "$RUNNER_TEMP/distribution.p12" -clcerts -nokeys \
+            -passin env:APPLE_DISTRIBUTION_P12_PASSWORD \
+            -out "$RUNNER_TEMP/public-cert.pem"
+          openssl pkcs12 -in "$RUNNER_TEMP/distribution.p12" -nocerts -nodes \
             -passin env:APPLE_DISTRIBUTION_P12_PASSWORD |
-            openssl pkcs12 -export -in /dev/stdin \
+            openssl pkcs12 -export -inkey /dev/stdin -in "$RUNNER_TEMP/public-cert.pem" \
               -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
               -passout env:APPLE_DISTRIBUTION_P12_PASSWORD \
               -out "$RUNNER_TEMP/keychain-compatible.p12"
@@ -215,7 +218,8 @@ jobs:
             profile_uuid="$(cat "$RUNNER_TEMP/profile-uuid.txt")"
             rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
           fi
-          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/keychain-compatible.p12" \
+          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/public-cert.pem" \
+            "$RUNNER_TEMP/keychain-compatible.p12" \
             "$RUNNER_TEMP/appstore.mobileprovision" \
             "$RUNNER_TEMP/profile.plist" "$RUNNER_TEMP/profile-name.txt" "$RUNNER_TEMP/profile-uuid.txt" \
             "$RUNNER_TEMP/ExportOptions.plist" "$RUNNER_TEMP/entitlements.plist"
