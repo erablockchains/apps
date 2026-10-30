@@ -1,7 +1,7 @@
 name: era_wallet
 description: ERA Wallet for managing ERA chain accounts, staking, and transfers.
 publish_to: "none"
-version: 1.2.0+5
+version: 1.2.0+9
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -32,6 +32,7 @@ dependencies:
   # platform builds; keeping it as dev-only produces an invalid registrant.
   flutter_native_splash: ^2.4.6
 dev_dependencies:
+  fake_async: ^1.3.3
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
@@ -73,6 +74,3 @@ flutter:
   assets:
     - assets/images/era_icon.png
     - assets/images/era_app_icon.png
-    - assets/images/splash_luxury_beach.png
-    # Optional, if you want video background mode:
-    - assets/videos/splash_luxury_beach_loop.mp4
