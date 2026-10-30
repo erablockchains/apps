@@ -3,24 +3,20 @@
 Preparation date: 30 October 2026. This document adds an **unsigned compilation
 workflow**, not a signed release or evidence of App Store eligibility.
 
-## Source must be reconciled first
+## Reviewed source
 
-At inspection, public `erablockchains/apps` master was commit
-`9595db6bf0610a0dcacf8b7306ea200527caac9c`, declaring `1.2.0+5`.
-The owner-reported build9 commit
-`ec447f17a1d4f2556c1d5788b9af68c1083a9ba3` and local iOS preparation
-commit prefix `4e8904f446` could not be resolved in that GitHub repository.
-The local `coord/wallet-ios-release-20261030` branch was not visible there.
-This does not establish that local work is missing: it establishes that a hosted
-runner cannot yet fetch those commits from this repository.
-
-Local Codex should preserve the existing worktree, verify its full commit SHA and
-build9 ancestry, review the diff for secrets/private coordination records, and
-publish **only the intended source changes** on an appropriate branch through the
-normal PR process. Do not upload coordination folders, credentials or app-signing
-material. Do not reconstruct the build9 fixes from the old public build5 source.
-If that worktree uses a different repository or rewritten history, reconcile the
-provenance explicitly before changing the workflow guard.
+At initial inspection, public master was build5 commit
+`9595db6bf0610a0dcacf8b7306ea200527caac9c`. The isolated
+`coord/wallet-ios-release-20261030` branch was then audited and pushed. Its full
+reviewed SHA is `e9828f3a15816d60f73ebd3627109a483d55e8e3`.
+GitHub compare confirms direct ancestry from the recorded build9 commit
+`ec447f17a1d4f2556c1d5788b9af68c1083a9ba3` and the public build5 commit.
+Source PR #3 merged that lineage into master as
+`b7b15f5df11abe81d5032c1d5c0f69dff2c58073`. The diff contained only
+`era-wallet/` source, tests, dependency metadata and iOS Runner settings; no
+private coordination records or signing material. Flutter 3.41.9 lockfile
+resolution and analysis passed; all 190 existing synthetic tests passed locally.
+These Windows checks do not establish an iOS compilation or signed-app result.
 
 ## Unsigned validation
 
@@ -28,7 +24,7 @@ The manually dispatched workflow is `.github/workflows/era-wallet-ios-validation
 It must be available on the default branch for normal manual-dispatch discovery.
 It has no push/PR triggers, no signing secrets and no TestFlight/App Review upload.
 
-After source reconciliation and workflow review/merge:
+After workflow review/merge:
 
 1. Open Actions > ERA Wallet iOS unsigned validation > Run workflow.
 2. Supply the **full 40-character reviewed iOS commit SHA**. Do not supply a branch
@@ -90,10 +86,9 @@ signed NFT purchase/swap interface against current Apple rules (including non-US
 purchase paths). Resolve App Privacy, Content Rights, export compliance, EU trader
 information and reviewer access using the shipping implementation.
 
-Keep Google Play and all production chain/server settings unchanged. Local Codex
-should reconcile this public PR into its existing source work and update the
-private Apple release register and RPC1 handovers; this GitHub preparation does
-not itself synchronize those private records.
+Keep Google Play and all production chain/server settings unchanged. Update the
+private Apple release register and RPC1 handovers from actual CI and signing
+results; this public GitHub workflow does not itself synchronize private records.
 
 Official references:
 
