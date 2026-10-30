@@ -1,0 +1,120 @@
+name: ERA Wallet iOS unsigned validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full reviewed iOS commit SHA containing the published build9 fixes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: era-wallet-ios-validation
+  cancel-in-progress: false
+
+jobs:
+  provenance:
+    if: github.repository == 'erablockchains/apps' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      source_sha: ${{ steps.verify.outputs.source_sha }}
+    steps:
+      - name: Check out reviewed workflow implementation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Verify release-source provenance before using a Mac runner
+        id: verify
+        env:
+          ERA_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: python3 .github/scripts/verify-era-ios-source.py --source-sha "$ERA_SOURCE_SHA"
+
+  unsigned-ios:
+    needs: provenance
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      FLUTTER_SUPPRESS_ANALYTICS: 'true'
+    defaults:
+      run:
+        working-directory: era-wallet
+        shell: bash
+    steps:
+      - name: Check out exact validated source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.provenance.outputs.source_sha }}
+          persist-credentials: false
+      - name: Record native toolchain
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          pod --version
+      - name: Install checksum-pinned Flutter 3.41.9
+        run: |
+          set -euo pipefail
+          case "$(uname -m)" in
+            arm64)
+              archive=flutter_macos_arm64_3.41.9-stable.zip
+              digest=d692b030a63466c44d6b2bc88583380371ecbe328f22cc4057835f59739821a1
+              ;;
+            x86_64)
+              archive=flutter_macos_3.41.9-stable.zip
+              digest=eaee3b6aa6da114eb0be843ac53f4f138d3d8827779ff1e4546b345c75b9cba1
+              ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --location --retry 2 --max-time 900 \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/$archive" \
+            --output "$RUNNER_TEMP/flutter-sdk.zip"
+          printf '%s  %s\n' "$digest" "$RUNNER_TEMP/flutter-sdk.zip" | shasum -a 256 --check
+          mkdir -p "$RUNNER_TEMP/era-flutter"
+          ditto -x -k "$RUNNER_TEMP/flutter-sdk.zip" "$RUNNER_TEMP/era-flutter"
+          rm "$RUNNER_TEMP/flutter-sdk.zip"
+          test "$(git -C "$RUNNER_TEMP/era-flutter/flutter" rev-parse HEAD)" = 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
+          echo "$RUNNER_TEMP/era-flutter/flutter/bin" >> "$GITHUB_PATH"
+      - name: Resolve locked dependencies and prepare iOS toolchain
+        run: |
+          set -euo pipefail
+          flutter config --no-analytics
+          dart --disable-analytics
+          flutter --version
+          flutter precache --ios
+          flutter pub get --enforce-lockfile
+      - name: Analyze and run existing synthetic tests
+        run: |
+          set -euo pipefail
+          flutter analyze
+          flutter test
+      - name: Compile unsigned iOS release and simulator app
+        run: |
+          set -euo pipefail
+          flutter build ios --release --no-codesign
+          flutter build ios --simulator --debug
+      - name: Record compiled identity and limits
+        env:
+          ERA_SOURCE_SHA: ${{ needs.provenance.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          plist=build/ios/iphoneos/Runner.app/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = com.eraprojects.erawallet
+          {
+            echo '## Unsigned iOS validation passed'
+            printf 'Source: `%s`\n\n' "$ERA_SOURCE_SHA"
+            xcodebuild -version
+            echo
+            shasum -a 256 build/ios/iphoneos/Runner.app/Runner
+            echo
+            echo 'No signing credentials were used; no IPA, TestFlight upload or App Review submission was produced.'
+            echo 'Simulator compilation is not UI testing or physical-device qualification.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+# Deliberately no push/PR triggers, secrets, cache, binary artifacts or uploads.
