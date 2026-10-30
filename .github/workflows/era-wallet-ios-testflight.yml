@@ -112,9 +112,22 @@ jobs:
           security list-keychains -d user -s "$keychain"
           printf '%s' "$APPLE_DISTRIBUTION_P12_BASE64" | base64 -D > "$RUNNER_TEMP/distribution.p12"
           printf '%s' "$APPLE_APPSTORE_PROFILE_BASE64" | base64 -D > "$RUNNER_TEMP/appstore.mobileprovision"
-          security import "$RUNNER_TEMP/distribution.p12" -k "$keychain" -P "$APPLE_DISTRIBUTION_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          # Windows' AES-256/SHA-256 P12 passed local validation but Security.framework
+          # rejected its MAC. Rewrap only on this temporary runner for Keychain import.
+          # The unencrypted PEM stream stays in the pipe; no key file or artifact is kept.
+          openssl pkcs12 -in "$RUNNER_TEMP/distribution.p12" -noout \
+            -passin env:APPLE_DISTRIBUTION_P12_PASSWORD
+          openssl pkcs12 -in "$RUNNER_TEMP/distribution.p12" -nodes \
+            -passin env:APPLE_DISTRIBUTION_P12_PASSWORD |
+            openssl pkcs12 -export -in /dev/stdin \
+              -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
+              -passout env:APPLE_DISTRIBUTION_P12_PASSWORD \
+              -out "$RUNNER_TEMP/keychain-compatible.p12"
+          security import "$RUNNER_TEMP/keychain-compatible.p12" -k "$keychain" \
+            -P "$APPLE_DISTRIBUTION_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain"
-          security find-identity -v -p codesigning "$keychain" | grep -q 'Apple Distribution:'
+          security find-identity -v -p codesigning "$keychain" |
+            grep -q '73222C60046D36C4EDD1B674CE917A6D163019D5.*Apple Distribution:'
           security cms -D -i "$RUNNER_TEMP/appstore.mobileprovision" > "$RUNNER_TEMP/profile.plist"
           profile_team="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$RUNNER_TEMP/profile.plist")"
           profile_app="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/profile.plist")"
@@ -202,7 +215,8 @@ jobs:
             profile_uuid="$(cat "$RUNNER_TEMP/profile-uuid.txt")"
             rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
           fi
-          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/appstore.mobileprovision" \
+          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/keychain-compatible.p12" \
+            "$RUNNER_TEMP/appstore.mobileprovision" \
             "$RUNNER_TEMP/profile.plist" "$RUNNER_TEMP/profile-name.txt" "$RUNNER_TEMP/profile-uuid.txt" \
             "$RUNNER_TEMP/ExportOptions.plist" "$RUNNER_TEMP/entitlements.plist"
           rm -rf "$RUNNER_TEMP/ipa-check" "$RUNNER_TEMP/ERA-Wallet.xcarchive" \
