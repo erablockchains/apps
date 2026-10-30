@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      ERA_SOURCE_SHA: e9828f3a15816d60f73ebd3627109a483d55e8e3
+      ERA_SOURCE_SHA: 042b8d1b5767dab10d451cdd98f47e5aa367de62
       BUILD_NUMBER: ${{ inputs.build_number }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -47,7 +47,7 @@ jobs:
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
-      ERA_SOURCE_SHA: e9828f3a15816d60f73ebd3627109a483d55e8e3
+      ERA_SOURCE_SHA: 042b8d1b5767dab10d451cdd98f47e5aa367de62
       BUILD_NUMBER: ${{ inputs.build_number }}
     defaults:
       run:
@@ -57,7 +57,7 @@ jobs:
       - name: Check out exact reviewed source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: e9828f3a15816d60f73ebd3627109a483d55e8e3
+          ref: 042b8d1b5767dab10d451cdd98f47e5aa367de62
           persist-credentials: false
       - name: Verify App Store build toolchain
         run: |
@@ -160,13 +160,9 @@ jobs:
           set -euo pipefail
           flutter build ios --release --config-only --no-codesign \
             --build-name=1.2.0 --build-number="$BUILD_NUMBER"
-          profile_name="$(cat "$RUNNER_TEMP/profile-name.txt")"
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
             -configuration Release -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/ERA-Wallet.xcarchive" \
-            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
-            PROVISIONING_PROFILE_SPECIFIER="$profile_name" \
-            DEVELOPMENT_TEAM=D2F9K652YH archive
+            -archivePath "$RUNNER_TEMP/ERA-Wallet.xcarchive" archive
           mkdir -p build/ios/ipa
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/ERA-Wallet.xcarchive" \
             -exportPath build/ios/ipa -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
