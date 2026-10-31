@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:polkadart/polkadart.dart' as polkadart;
 import 'package:polkadart/scale_codec.dart' show decodeHex;
@@ -114,6 +115,9 @@ class _V14OperationsScreenState extends State<V14OperationsScreen> {
   }
 
   Future<void> _reviewNftAction() async {
+    // App Store release: NFT listings, purchases and swaps are not offered on
+    // iOS because this flow settles in ETKN rather than through StoreKit.
+    if (defaultTargetPlatform == TargetPlatform.iOS) return;
     await _run(() async {
       final plan = _buildNftPlan();
       await _reviewAndSubmit(plan, _nftPostStateVerifier(plan));
@@ -368,16 +372,17 @@ class _V14OperationsScreenState extends State<V14OperationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final nftTradingAvailable = defaultTargetPlatform != TargetPlatform.iOS;
     return DefaultTabController(
-      length: 3,
+      length: nftTradingAvailable ? 3 : 2,
       child: EraScaffold(
         appBar: AppBar(
           title: const Text('ERA V14 Assets & Rewards'),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'NFT read'),
-              Tab(text: 'NFT actions'),
-              Tab(text: 'Rewards'),
+              const Tab(text: 'NFT read'),
+              if (nftTradingAvailable) const Tab(text: 'NFT actions'),
+              const Tab(text: 'Rewards'),
             ],
           ),
         ),
@@ -395,7 +400,11 @@ class _V14OperationsScreenState extends State<V14OperationsScreen> {
               ),
             Expanded(
               child: TabBarView(
-                children: [_nftReadTab(), _nftActionTab(), _rewardTab()],
+                children: [
+                  _nftReadTab(),
+                  if (nftTradingAvailable) _nftActionTab(),
+                  _rewardTab(),
+                ],
               ),
             ),
           ],
