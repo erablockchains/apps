@@ -7,6 +7,11 @@ on:
         description: Full reviewed iOS commit SHA containing the published build9 fixes
         required: true
         type: string
+      capture_ipad_screenshot:
+        description: Capture a genuine first-run 13-inch iPad simulator screen from the exact source
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -121,4 +126,55 @@ jobs:
             echo 'Simulator compilation is not UI testing or physical-device qualification.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-# Deliberately no push/PR triggers, secrets, cache, binary artifacts or uploads.
+      - name: Capture first-run screen on a fresh 13-inch iPad simulator
+        if: inputs.capture_ipad_screenshot
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          def sim_list(kind):
+              return json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', kind, '-j']))
+
+          types = sim_list('devicetypes')['devicetypes']
+          matches = [item for item in types if 'iPad Pro 13-inch' in item['name']]
+          if not matches:
+              raise SystemExit('No 13-inch iPad Pro simulator device type is installed')
+          runtimes = sim_list('runtimes')['runtimes']
+          ios = [item for item in runtimes if item.get('isAvailable') and item['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-')]
+          if not ios:
+              raise SystemExit('No available iOS simulator runtime is installed')
+          ios.sort(key=lambda item: tuple(int(part) for part in item['version'].split('.')), reverse=True)
+          device = matches[-1]
+          runtime = ios[0]
+          uuid = subprocess.check_output(['xcrun', 'simctl', 'create', 'ERA Wallet App Store iPad 13', device['identifier'], runtime['identifier']], text=True).strip()
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'era-ipad-simulator-uuid'), 'w', encoding='utf-8') as out:
+              out.write(uuid)
+          print('Simulator:', device['name'], runtime['name'], uuid)
+          PY
+          uuid="$(cat "$RUNNER_TEMP/era-ipad-simulator-uuid")"
+          xcrun simctl boot "$uuid"
+          xcrun simctl bootstatus "$uuid" -b
+          xcrun simctl install "$uuid" build/ios/iphonesimulator/Runner.app
+          xcrun simctl launch "$uuid" com.eraprojects.erawallet
+          sleep 12
+          capture="$RUNNER_TEMP/era-wallet-ipad-13-build11.png"
+          xcrun simctl io "$uuid" screenshot "$capture"
+          width="$(sips -g pixelWidth "$capture" | awk '/pixelWidth/{print $2}')"
+          height="$(sips -g pixelHeight "$capture" | awk '/pixelHeight/{print $2}')"
+          case "$width x $height" in
+            '2048 x 2732'|'2064 x 2752') ;;
+            *) echo "Unexpected iPad screenshot dimensions: $width x $height" >&2; exit 1 ;;
+          esac
+          shasum -a 256 "$capture"
+          printf '\nFresh simulator first-run screenshot: %s x %s. Inspect the image before App Store upload; this is not physical-device qualification.\n' "$width" "$height" >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain iPad screenshot for visual review
+        if: inputs.capture_ipad_screenshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: era-wallet-ipad-13-build11-first-run
+          path: ${{ runner.temp }}/era-wallet-ipad-13-build11.png
+          if-no-files-found: error
+          retention-days: 7
+
+# Deliberately no push/PR triggers, secrets, cache or signed binary uploads.
