@@ -27,6 +27,7 @@ import 'package:polkadart/scale_codec.dart' show encodeHex;
 // NEW: shared luxury background scaffold
 import 'era_scaffold.dart';
 import 'recipient_qr_scanner.dart';
+import 'review_demo/review_demo_screen.dart';
 import 'staking_disclosure.dart';
 import 'v14/v14_operations_screen.dart';
 
@@ -842,6 +843,14 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             icon: const Icon(Icons.check),
             label: Text(_saving ? 'Setting up...' : 'Create PIN'),
           ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReviewDemoScreen())),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('Explore synthetic demo — no funds'),
+          ),
         ],
       ),
     );
@@ -963,6 +972,14 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                   },
             icon: const Icon(Icons.lock_open),
             label: Text(_busy ? 'Unlocking...' : 'Unlock'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReviewDemoScreen())),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('Explore synthetic demo — no funds'),
           ),
         ],
       ),
@@ -1757,6 +1774,14 @@ class _WalletHomeScreenState extends State<WalletHomeScreen> {
           _connectionStatusWidget(chain),
           const SizedBox(height: 16),
           _accountCard(am),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReviewDemoScreen())),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('Explore synthetic demo — no funds'),
+          ),
         ],
       ),
     );
