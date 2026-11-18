@@ -204,10 +204,24 @@ jobs:
           json.dump({'simulator':device['name'],'runtime':runtime['name'],'udid':uid,'source':os.environ.get('REVIEW_SOURCE'),'physical_device':False},open('build/review-access-captures/device.json','w'),indent=2)
           PY
           uid="$(cat "$RUNNER_TEMP/review-simulator-id")"
-          xcrun simctl boot "$uid"
-          xcrun simctl bootstatus "$uid" -b
-          xcrun simctl status_bar "$uid" override --time 9:41 --batteryState charged --batteryLevel 100
-          flutter drive --no-pub --driver=test_driver/review_access_driver.dart --target=integration_test/review_access_test.dart -d "$uid"
+          python3 - <<'PY'
+          import os, subprocess
+          uid = open(os.path.join(os.environ['RUNNER_TEMP'],'review-simulator-id')).read().strip()
+          def checked(label, command, seconds):
+              print('REVIEW_CAPTURE_STAGE:', label, flush=True)
+              subprocess.run(command, check=True, timeout=seconds)
+              print('REVIEW_CAPTURE_STAGE_COMPLETE:', label, flush=True)
+          checked('boot', ['xcrun','simctl','boot',uid], 90)
+          # Open the installed Simulator host for the fresh disposable device.
+          checked('simulator host', ['open','-a','Simulator','--args','-CurrentDeviceUDID',uid], 60)
+          checked('boot readiness', ['xcrun','simctl','bootstatus',uid,'-b'], 420)
+          try:
+              checked('cosmetic status bar', ['xcrun','simctl','status_bar',uid,'override','--time','9:41','--batteryState','charged','--batteryLevel','100'], 30)
+          except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as exc:
+              # A cosmetic override must not prevent genuine UI qualification.
+              print('Status-bar override unavailable:', type(exc).__name__, flush=True)
+          checked('review access integration test', ['flutter','drive','--no-pub','--driver=test_driver/review_access_driver.dart','--target=integration_test/review_access_test.dart','-d',uid], 1200)
+          PY
         env:
           REVIEW_SOURCE: ${{ needs.provenance.outputs.source_sha }}
       - name: Retain reviewer captures for visual inspection
