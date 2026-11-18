@@ -224,6 +224,26 @@ jobs:
           PY
         env:
           REVIEW_SOURCE: ${{ needs.provenance.outputs.source_sha }}
+      - name: Export safe frames from only the disposable app container
+        if: inputs.capture_review_guide && always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shutil, subprocess
+          marker = pathlib.Path(os.environ['RUNNER_TEMP'])/'review-simulator-id'
+          if marker.is_file():
+              uid = marker.read_text().strip()
+              result = subprocess.run(['xcrun','simctl','get_app_container',uid,'com.eraprojects.erawallet','data'], capture_output=True, text=True, timeout=60)
+              if result.returncode == 0:
+                  source = pathlib.Path(result.stdout.strip())/'tmp'/'era-review-access-captures'
+                  destination = pathlib.Path('build/review-access-captures')
+                  destination.mkdir(parents=True,exist_ok=True)
+                  if source.is_dir():
+                      for frame in sorted(source.glob('*.png')):
+                          shutil.copy2(frame,destination/frame.name)
+                      print('Exported safe frames:',len(list(destination.glob('*.png'))),flush=True)
+              else:
+                  print('Disposable app container unavailable; no UI captures claimed',flush=True)
+          PY
       - name: Retain reviewer captures for visual inspection
         if: inputs.capture_review_guide && always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -235,10 +255,20 @@ jobs:
       - name: Remove only the disposable review simulator
         if: inputs.capture_review_guide && always()
         run: |
-          if test -s "$RUNNER_TEMP/review-simulator-id"; then
-            uid="$(cat "$RUNNER_TEMP/review-simulator-id")"
-            xcrun simctl shutdown "$uid" || true
-            xcrun simctl delete "$uid"
-          fi
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          marker = pathlib.Path(os.environ['RUNNER_TEMP'])/'review-simulator-id'
+          if marker.is_file():
+              uid = marker.read_text().strip()
+              print('Removing only disposable review simulator:', uid, flush=True)
+              try:
+                  subprocess.run(['xcrun','simctl','shutdown',uid], timeout=60, check=False)
+              except subprocess.TimeoutExpired:
+                  print('Shutdown timed out; attempting UUID-scoped deletion', flush=True)
+              subprocess.run(['xcrun','simctl','delete',uid], timeout=60, check=True)
+              listing = json.loads(subprocess.check_output(['xcrun','simctl','list','devices','--json'], timeout=60))
+              assert all(d['udid'] != uid for group in listing['devices'].values() for d in group), 'Disposable simulator still present'
+              print('DISPOSABLE_REVIEW_SIMULATOR_REMOVED', flush=True)
+          PY
 
 # Deliberately no push/PR triggers, secrets, cache or signed binary uploads.
