@@ -186,11 +186,27 @@ jobs:
           except subprocess.TimeoutExpired:
               print('Optional Simulator host launch timed out after device boot',flush=True)
           PY
-          xcrun simctl install "$uuid" build/ios/iphonesimulator/Runner.app
-          xcrun simctl launch "$uuid" com.eraprojects.erawallet
-          sleep 12
+          python3 - "$uuid" <<'PY'
+          import os, pathlib, shutil, subprocess, sys
+          uid = sys.argv[1]
+          # Bind capture to a successful Flutter UI assertion. A previous
+          # timed simctl screenshot captured SpringBoard despite exit zero.
+          subprocess.run([
+              'flutter','drive','--no-pub',
+              '--driver=test_driver/review_access_driver.dart',
+              '--target=integration_test/review_access_test.dart',
+              '--dart-define=ERA_STORE_CAPTURE_ONLY=true','-d',uid,
+          ],check=True,timeout=1200)
+          container = subprocess.check_output([
+              'xcrun','simctl','get_app_container',uid,
+              'com.eraprojects.erawallet','data',
+          ],text=True,timeout=60).strip()
+          frame = pathlib.Path(container)/'tmp'/'era-review-access-captures'/'01-first-launch-no-pin.png'
+          assert frame.is_file(), 'Missing UI-asserted app screenshot'
+          shutil.copy2(frame,pathlib.Path(os.environ['RUNNER_TEMP'])/'era-wallet-ipad-13-current-source.png')
+          print('STORE_APP_UI_ASSERTION_AND_CAPTURE_PASSED',flush=True)
+          PY
           capture="$RUNNER_TEMP/era-wallet-ipad-13-current-source.png"
-          xcrun simctl io "$uuid" screenshot "$capture"
           width="$(sips -g pixelWidth "$capture" | awk '/pixelWidth/{print $2}')"
           height="$(sips -g pixelHeight "$capture" | awk '/pixelHeight/{print $2}')"
           case "$width x $height" in

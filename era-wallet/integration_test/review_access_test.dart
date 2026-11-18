@@ -51,6 +51,9 @@ void main() {
 
     await waitFor(find.text('Explore synthetic demo — no funds'));
     await capture('01-first-launch-no-pin');
+    // A store screenshot must prove the app UI is visible, not merely that
+    // simctl launched a process before a fixed delay expired.
+    if (const bool.fromEnvironment('ERA_STORE_CAPTURE_ONLY')) return;
     await tap('Explore synthetic demo — no funds');
     await capture('02-demo-home');
     await section('Accounts');
