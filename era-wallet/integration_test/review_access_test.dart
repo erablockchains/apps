@@ -55,6 +55,9 @@ void main() {
     await capture('02-demo-home');
     await section('Accounts');
     await capture('03-demo-accounts');
+    await tap('Show synthetic address QR');
+    await capture('03b-demo-address-qr');
+    await tap('Done');
     await section('Send / QR');
     await tap('Estimate illustrative fee');
     await capture('04-demo-send-fee');
@@ -116,5 +119,43 @@ void main() {
     await tester.tap(find.byTooltip('Staking'));
     await tester.pump(const Duration(seconds: 2));
     await capture('17-ordinary-staking-unfunded');
+    await tester.pageBack();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.byTooltip('V14 NFTs and SecurityBudget rewards'));
+    final nftTitle = find.text('ERA V14 Assets & Rewards');
+    final offlineNotice = find.text('Not connected to the ERA node.');
+    for (
+      var i = 0;
+      i < 180 &&
+          nftTitle.evaluate().isEmpty &&
+          offlineNotice.evaluate().isEmpty;
+      i++
+    ) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    if (nftTitle.evaluate().isNotEmpty) {
+      expect(find.text('NFT actions'), findsNothing);
+      await capture('18-ordinary-nft-read');
+      await tap('Rewards');
+      await capture('19-ordinary-rewards');
+      await tester.pageBack();
+    } else {
+      expect(offlineNotice, findsOneWidget);
+      await capture('18-ordinary-node-unavailable');
+    }
+    await tester.pump(const Duration(milliseconds: 600));
+    // Exercise the real lifecycle lock and PIN route on this disposable
+    // simulator. Never capture the entered PIN or a recovery phrase.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await Future<void>.delayed(const Duration(seconds: 62));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(milliseconds: 600));
+    await waitFor(find.text('ERA Wallet — Unlock'));
+    await capture('20-ordinary-unlock-empty');
+    await tester.enterText(find.widgetWithText(TextField, 'PIN'), '738291');
+    await tap('Unlock');
+    await waitFor(find.byTooltip('Accounts'));
+    expect(find.text('Mnemonic (save now, shown only once):'), findsNothing);
+    await capture('21-ordinary-pin-unlocked-home');
   });
 }

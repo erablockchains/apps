@@ -106,28 +106,34 @@ jobs:
           flutter precache --ios
           flutter pub get --enforce-lockfile
       - name: Analyze and run existing synthetic tests
+        if: inputs.capture_review_guide || !inputs.capture_ipad_screenshot
         run: |
           set -euo pipefail
           flutter analyze
           flutter test
       - name: Compile unsigned iOS release and simulator app
+        if: inputs.capture_review_guide || !inputs.capture_ipad_screenshot
         run: |
           set -euo pipefail
           flutter build ios --release --no-codesign
           flutter build ios --simulator --debug
+      - name: Compile simulator only for supplemental store screenshot
+        if: inputs.capture_ipad_screenshot && !inputs.capture_review_guide
+        run: flutter build ios --simulator --debug
       - name: Record compiled identity and limits
         env:
           ERA_SOURCE_SHA: ${{ needs.provenance.outputs.source_sha }}
         run: |
           set -euo pipefail
           plist=build/ios/iphoneos/Runner.app/Info.plist
+          if test ! -f "$plist"; then plist=build/ios/iphonesimulator/Runner.app/Info.plist; fi
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = com.eraprojects.erawallet
           {
-            echo '## Unsigned iOS validation passed'
+            echo '## Unsigned compiled identity'
             printf 'Source: `%s`\n\n' "$ERA_SOURCE_SHA"
             xcodebuild -version
             echo
-            shasum -a 256 build/ios/iphoneos/Runner.app/Runner
+            shasum -a 256 "${plist%/Info.plist}/Runner"
             echo
             echo 'No signing credentials were used; no IPA, TestFlight upload or App Review submission was produced.'
             echo 'Simulator compilation is not UI testing or physical-device qualification.'
@@ -160,12 +166,15 @@ jobs:
           print('Simulator:', device['name'], runtime['name'], uuid)
           PY
           uuid="$(cat "$RUNNER_TEMP/era-ipad-simulator-uuid")"
-          xcrun simctl boot "$uuid"
-          xcrun simctl bootstatus "$uuid" -b
+          python3 - "$uuid" <<'PY'
+          import subprocess, sys
+          subprocess.run(['xcrun','simctl','boot',sys.argv[1]],check=True,timeout=90)
+          subprocess.run(['xcrun','simctl','bootstatus',sys.argv[1],'-b'],check=True,timeout=420)
+          PY
           xcrun simctl install "$uuid" build/ios/iphonesimulator/Runner.app
           xcrun simctl launch "$uuid" com.eraprojects.erawallet
           sleep 12
-          capture="$RUNNER_TEMP/era-wallet-ipad-13-build11.png"
+          capture="$RUNNER_TEMP/era-wallet-ipad-13-current-source.png"
           xcrun simctl io "$uuid" screenshot "$capture"
           width="$(sips -g pixelWidth "$capture" | awk '/pixelWidth/{print $2}')"
           height="$(sips -g pixelHeight "$capture" | awk '/pixelHeight/{print $2}')"
@@ -179,8 +188,8 @@ jobs:
         if: inputs.capture_ipad_screenshot
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: era-wallet-ipad-13-build11-first-run
-          path: ${{ runner.temp }}/era-wallet-ipad-13-build11.png
+          name: era-wallet-ipad-13-current-source-first-run
+          path: ${{ runner.temp }}/era-wallet-ipad-13-current-source.png
           if-no-files-found: error
           retention-days: 7
 
@@ -258,13 +267,16 @@ jobs:
           path: era-wallet/build/review-access-captures
           if-no-files-found: warn
           retention-days: 7
-      - name: Remove only the disposable review simulator
-        if: inputs.capture_review_guide && always()
+      - name: Remove only the disposable capture simulators
+        if: (inputs.capture_review_guide || inputs.capture_ipad_screenshot) && always()
         run: |
           python3 - <<'PY'
           import json, os, pathlib, subprocess
-          marker = pathlib.Path(os.environ['RUNNER_TEMP'])/'review-simulator-id'
-          if marker.is_file():
+          for marker_name in ['review-simulator-id','era-ipad-simulator-uuid']:
+            marker = pathlib.Path(os.environ['RUNNER_TEMP'])/marker_name
+            if not marker.is_file():
+              continue
+            if marker.is_file():
               uid = marker.read_text().strip()
               print('Removing only disposable review simulator:', uid, flush=True)
               try:
