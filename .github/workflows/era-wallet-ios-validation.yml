@@ -3,6 +3,11 @@ name: ERA Wallet iOS unsigned validation
 on:
   workflow_dispatch:
     inputs:
+      capture_review_guide:
+        description: Run first-launch and synthetic-flow capture on a fresh 11-inch iPad simulator
+        required: false
+        default: false
+        type: boolean
       source_sha:
         description: Full reviewed iOS commit SHA containing the published build9 fixes
         required: true
@@ -176,5 +181,48 @@ jobs:
           path: ${{ runner.temp }}/era-wallet-ipad-13-build11.png
           if-no-files-found: error
           retention-days: 7
+
+      - name: Capture reviewer access on a disposable 11-inch iPad simulator
+        if: inputs.capture_review_guide
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          def listing(kind):
+              return json.loads(subprocess.check_output(['xcrun','simctl','list',kind,'--json']))[kind]
+          devices = [d for d in listing('devicetypes') if 'iPad' in d['name'] and '11-inch' in d['name']]
+          devices.sort(key=lambda d: ('Air' in d['name'] and 'M3' in d['name'], 'Air' in d['name']))
+          runtimes = [r for r in listing('runtimes') if r.get('isAvailable') and '.iOS-' in r['identifier']]
+          runtimes.sort(key=lambda r: tuple(map(int,r['version'].split('.'))))
+          assert devices and runtimes, '11-inch iPad/iOS simulator unavailable'
+          device, runtime = devices[-1], runtimes[-1]
+          uid = subprocess.check_output(['xcrun','simctl','create','ERA disposable review access',device['identifier'],runtime['identifier']],text=True).strip()
+          open(os.path.join(os.environ['RUNNER_TEMP'],'review-simulator-id'),'w').write(uid)
+          os.makedirs('build/review-access-captures',exist_ok=True)
+          json.dump({'simulator':device['name'],'runtime':runtime['name'],'udid':uid,'source':os.environ.get('REVIEW_SOURCE'),'physical_device':False},open('build/review-access-captures/device.json','w'),indent=2)
+          PY
+          uid="$(cat "$RUNNER_TEMP/review-simulator-id")"
+          xcrun simctl boot "$uid"
+          xcrun simctl bootstatus "$uid" -b
+          xcrun simctl status_bar "$uid" override --time 9:41 --batteryState charged --batteryLevel 100
+          flutter drive --no-pub --driver=test_driver/review_access_driver.dart --target=integration_test/review_access_test.dart -d "$uid"
+        env:
+          REVIEW_SOURCE: ${{ needs.provenance.outputs.source_sha }}
+      - name: Retain reviewer captures for visual inspection
+        if: inputs.capture_review_guide && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: era-wallet-review-access-captures
+          path: era-wallet/build/review-access-captures
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove only the disposable review simulator
+        if: inputs.capture_review_guide && always()
+        run: |
+          if test -s "$RUNNER_TEMP/review-simulator-id"; then
+            uid="$(cat "$RUNNER_TEMP/review-simulator-id")"
+            xcrun simctl shutdown "$uid" || true
+            xcrun simctl delete "$uid"
+          fi
 
 # Deliberately no push/PR triggers, secrets, cache or signed binary uploads.

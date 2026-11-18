@@ -32,6 +32,8 @@ dependencies:
   # platform builds; keeping it as dev-only produces an invalid registrant.
   flutter_native_splash: ^2.4.6
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   fake_async: ^1.3.3
   flutter_test:
     sdk: flutter
