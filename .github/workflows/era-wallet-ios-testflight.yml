@@ -76,7 +76,7 @@ jobs:
             x86_64) archive=flutter_macos_3.41.9-stable.zip; digest=eaee3b6aa6da114eb0be843ac53f4f138d3d8827779ff1e4546b345c75b9cba1 ;;
             *) exit 1 ;;
           esac
-          curl --fail --location --retry 2 --max-time 900 \
+          curl --fail --location --retry 2 --retry-all-errors --max-time 900 \
             "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/$archive" \
             --output "$RUNNER_TEMP/flutter-sdk.zip"
           printf '%s  %s\n' "$digest" "$RUNNER_TEMP/flutter-sdk.zip" | shasum -a 256 --check

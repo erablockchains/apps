@@ -45,13 +45,15 @@ jobs:
 
   unsigned-ios:
     needs: provenance
-    # Standard public-repository Intel runner; avoids the arm64 capacity
-    # allocation failure in run 44322166562 without changing the app source.
-    runs-on: macos-26-intel
-    timeout-minutes: 60
+    # Standard public-repository Apple-silicon runner. Intel first boot stalled
+    # in KeychainMigrator before ERA launched in run 44384483918. The macOS15
+    # image includes Xcode26.3; select it rather than the image's Xcode16 default.
+    runs-on: macos-15
+    timeout-minutes: 75
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     defaults:
       run:
         working-directory: era-wallet
@@ -88,7 +90,7 @@ jobs:
               ;;
             *) exit 1 ;;
           esac
-          curl --fail --location --retry 2 --max-time 900 \
+          curl --fail --location --retry 2 --retry-all-errors --max-time 900 \
             "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/$archive" \
             --output "$RUNNER_TEMP/flutter-sdk.zip"
           printf '%s  %s\n' "$digest" "$RUNNER_TEMP/flutter-sdk.zip" | shasum -a 256 --check
@@ -169,7 +171,11 @@ jobs:
           python3 - "$uuid" <<'PY'
           import subprocess, sys
           subprocess.run(['xcrun','simctl','boot',sys.argv[1]],check=True,timeout=90)
-          subprocess.run(['xcrun','simctl','bootstatus',sys.argv[1],'-b'],check=True,timeout=420)
+          subprocess.run(['xcrun','simctl','bootstatus',sys.argv[1],'-b'],check=True,timeout=900)
+          try:
+              subprocess.run(['open','-g','-a','Simulator','--args','-CurrentDeviceUDID',sys.argv[1]],check=False,timeout=30)
+          except subprocess.TimeoutExpired:
+              print('Optional Simulator host launch timed out after device boot',flush=True)
           PY
           xcrun simctl install "$uuid" build/ios/iphonesimulator/Runner.app
           xcrun simctl launch "$uuid" com.eraprojects.erawallet
@@ -194,7 +200,7 @@ jobs:
           retention-days: 7
 
       - name: Capture reviewer access on a disposable 11-inch iPad simulator
-        if: inputs.capture_review_guide
+        if: inputs.capture_review_guide && !cancelled()
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -225,7 +231,11 @@ jobs:
           # wait indefinitely for the Simulator GUI while its first boot is
           # still initializing (run 44370955567). The Flutter driver needs the
           # booted device, not a foreground Simulator window.
-          checked('boot readiness', ['xcrun','simctl','bootstatus',uid,'-b'], 420)
+          checked('boot readiness', ['xcrun','simctl','bootstatus',uid,'-b'], 900)
+          try:
+              checked('optional simulator host after boot', ['open','-g','-a','Simulator','--args','-CurrentDeviceUDID',uid], 30)
+          except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+              print('Optional Simulator host unavailable; continuing with booted CoreSimulator',flush=True)
           try:
               checked('cosmetic status bar', ['xcrun','simctl','status_bar',uid,'override','--time','9:41','--batteryState','charged','--batteryLevel','100'], 30)
           except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as exc:
