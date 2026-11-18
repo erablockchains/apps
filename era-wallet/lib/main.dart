@@ -1450,6 +1450,22 @@ class _WalletHomeScreenState extends State<WalletHomeScreen> {
 
   Future<void> _initFlow() async {
     if (!mounted) return;
+    // The locally generated recovery phrase must be reachable even while
+    // the RPC is offline or still refreshing. Never gate this on networking.
+    final am = flutter_provider.Provider.of<AccountManager>(
+      context,
+      listen: false,
+    );
+    final acc = am.active;
+    if (acc != null && am.getPendingRevealMnemonic(acc.id) != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AccountsScreen()));
+      });
+    }
+
     final ep = flutter_provider.Provider.of<EraWalletProvider>(
       context,
       listen: false,
@@ -1470,26 +1486,6 @@ class _WalletHomeScreenState extends State<WalletHomeScreen> {
 
     if (ep.api != null && mounted) {
       await _refreshBalance();
-    }
-
-    // After balance refresh, check if active account has pending mnemonic:
-    if (!mounted) return;
-    final am = flutter_provider.Provider.of<AccountManager>(
-      context,
-      listen: false,
-    );
-    final acc = am.active;
-    if (acc != null) {
-      final pending = am.getPendingRevealMnemonic(acc.id);
-      if (pending != null) {
-        // Automatically open AccountsScreen so user sees mnemonic.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AccountsScreen()));
-        });
-      }
     }
   }
 

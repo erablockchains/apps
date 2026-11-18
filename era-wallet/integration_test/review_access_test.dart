@@ -1,4 +1,5 @@
 // Run only on a newly created disposable iOS simulator, never a personal device.
+import 'dart:io';
 import 'package:era_wallet/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +20,20 @@ void main() {
 
     Future<void> capture(String name) async {
       await tester.pump(const Duration(milliseconds: 500));
-      await binding.takeScreenshot(name);
+      final screenshot = await binding.takeScreenshot(name);
+      // Persist each safe frame inside the disposable simulator immediately.
+      // Keeping every PNG inside the final VM-service JSON loses all images
+      // when a later assertion fails or that large response is interrupted.
+      final directory = Directory(
+        '${Directory.systemTemp.path}/era-review-access-captures',
+      );
+      await directory.create(recursive: true);
+      await File(
+        '${directory.path}/$name.png',
+      ).writeAsBytes(screenshot, flush: true);
+      (binding.reportData?['screenshots'] as List?)?.clear();
+      // Only names, never PINs, phrases, keys or raw screenshots, enter logs.
+      debugPrint('REVIEW_SAFE_CAPTURE_SAVED: $name');
     }
 
     Future<void> tap(String label) async {
