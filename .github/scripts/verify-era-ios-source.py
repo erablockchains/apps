@@ -23,8 +23,8 @@ def require_sha(value):
 
 def validate_source(pubspec, project, info):
     version = re.search(r"^version:\s*[\"']?(\d+)\.(\d+)\.(\d+)\+(\d+)[\"']?\s*$", pubspec, re.M)
-    if not version or tuple(map(int, version.groups()[:3])) != (1, 2, 0) or int(version[4]) < 9:
-        raise ValueError("Source must declare the reviewed 1.2.0 build9-or-later lineage; build5 is not eligible.")
+    if not version or tuple(map(int, version.groups()[:3])) not in ((1, 2, 0), (1, 2, 1)) or int(version[4]) < 9:
+        raise ValueError("Source must declare the reviewed 1.2.0/1.2.1 build9-or-later lineage; build5 is not eligible.")
     teams = re.findall(r'DEVELOPMENT_TEAM\s*=\s*"?([A-Z0-9]+)"?\s*;', project)
     if not teams or set(teams) != {TEAM}:
         raise ValueError("Configure and review the ERA Apple team in the source before building.")

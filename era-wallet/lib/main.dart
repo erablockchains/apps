@@ -27,6 +27,7 @@ import 'package:polkadart/scale_codec.dart' show encodeHex;
 // NEW: shared luxury background scaffold
 import 'era_scaffold.dart';
 import 'recipient_qr_scanner.dart';
+import 'review_demo/review_demo_screen.dart';
 import 'staking_disclosure.dart';
 import 'v14/v14_operations_screen.dart';
 
@@ -842,6 +843,14 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             icon: const Icon(Icons.check),
             label: Text(_saving ? 'Setting up...' : 'Create PIN'),
           ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReviewDemoScreen())),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('Explore synthetic demo — no funds'),
+          ),
         ],
       ),
     );
@@ -963,6 +972,14 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                   },
             icon: const Icon(Icons.lock_open),
             label: Text(_busy ? 'Unlocking...' : 'Unlock'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReviewDemoScreen())),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('Explore synthetic demo — no funds'),
           ),
         ],
       ),
@@ -1433,6 +1450,22 @@ class _WalletHomeScreenState extends State<WalletHomeScreen> {
 
   Future<void> _initFlow() async {
     if (!mounted) return;
+    // The locally generated recovery phrase must be reachable even while
+    // the RPC is offline or still refreshing. Never gate this on networking.
+    final am = flutter_provider.Provider.of<AccountManager>(
+      context,
+      listen: false,
+    );
+    final acc = am.active;
+    if (acc != null && am.getPendingRevealMnemonic(acc.id) != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AccountsScreen()));
+      });
+    }
+
     final ep = flutter_provider.Provider.of<EraWalletProvider>(
       context,
       listen: false,
@@ -1453,26 +1486,6 @@ class _WalletHomeScreenState extends State<WalletHomeScreen> {
 
     if (ep.api != null && mounted) {
       await _refreshBalance();
-    }
-
-    // After balance refresh, check if active account has pending mnemonic:
-    if (!mounted) return;
-    final am = flutter_provider.Provider.of<AccountManager>(
-      context,
-      listen: false,
-    );
-    final acc = am.active;
-    if (acc != null) {
-      final pending = am.getPendingRevealMnemonic(acc.id);
-      if (pending != null) {
-        // Automatically open AccountsScreen so user sees mnemonic.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AccountsScreen()));
-        });
-      }
     }
   }
 
@@ -1757,6 +1770,14 @@ class _WalletHomeScreenState extends State<WalletHomeScreen> {
           _connectionStatusWidget(chain),
           const SizedBox(height: 16),
           _accountCard(am),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReviewDemoScreen())),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('Explore synthetic demo — no funds'),
+          ),
         ],
       ),
     );

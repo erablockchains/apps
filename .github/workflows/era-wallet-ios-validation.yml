@@ -3,6 +3,11 @@ name: ERA Wallet iOS unsigned validation
 on:
   workflow_dispatch:
     inputs:
+      capture_review_guide:
+        description: Run first-launch and synthetic-flow capture on a fresh 11-inch iPad simulator
+        required: false
+        default: false
+        type: boolean
       source_sha:
         description: Full reviewed iOS commit SHA containing the published build9 fixes
         required: true
@@ -40,7 +45,9 @@ jobs:
 
   unsigned-ios:
     needs: provenance
-    runs-on: macos-26
+    # Standard public-repository Intel runner; avoids the arm64 capacity
+    # allocation failure in run 44322166562 without changing the app source.
+    runs-on: macos-26-intel
     timeout-minutes: 60
     env:
       CI: 'true'
@@ -99,28 +106,34 @@ jobs:
           flutter precache --ios
           flutter pub get --enforce-lockfile
       - name: Analyze and run existing synthetic tests
+        if: inputs.capture_review_guide || !inputs.capture_ipad_screenshot
         run: |
           set -euo pipefail
           flutter analyze
           flutter test
       - name: Compile unsigned iOS release and simulator app
+        if: inputs.capture_review_guide || !inputs.capture_ipad_screenshot
         run: |
           set -euo pipefail
           flutter build ios --release --no-codesign
           flutter build ios --simulator --debug
+      - name: Compile simulator only for supplemental store screenshot
+        if: inputs.capture_ipad_screenshot && !inputs.capture_review_guide
+        run: flutter build ios --simulator --debug
       - name: Record compiled identity and limits
         env:
           ERA_SOURCE_SHA: ${{ needs.provenance.outputs.source_sha }}
         run: |
           set -euo pipefail
           plist=build/ios/iphoneos/Runner.app/Info.plist
+          if test ! -f "$plist"; then plist=build/ios/iphonesimulator/Runner.app/Info.plist; fi
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = com.eraprojects.erawallet
           {
-            echo '## Unsigned iOS validation passed'
+            echo '## Unsigned compiled identity'
             printf 'Source: `%s`\n\n' "$ERA_SOURCE_SHA"
             xcodebuild -version
             echo
-            shasum -a 256 build/ios/iphoneos/Runner.app/Runner
+            shasum -a 256 "${plist%/Info.plist}/Runner"
             echo
             echo 'No signing credentials were used; no IPA, TestFlight upload or App Review submission was produced.'
             echo 'Simulator compilation is not UI testing or physical-device qualification.'
@@ -153,12 +166,15 @@ jobs:
           print('Simulator:', device['name'], runtime['name'], uuid)
           PY
           uuid="$(cat "$RUNNER_TEMP/era-ipad-simulator-uuid")"
-          xcrun simctl boot "$uuid"
-          xcrun simctl bootstatus "$uuid" -b
+          python3 - "$uuid" <<'PY'
+          import subprocess, sys
+          subprocess.run(['xcrun','simctl','boot',sys.argv[1]],check=True,timeout=90)
+          subprocess.run(['xcrun','simctl','bootstatus',sys.argv[1],'-b'],check=True,timeout=420)
+          PY
           xcrun simctl install "$uuid" build/ios/iphonesimulator/Runner.app
           xcrun simctl launch "$uuid" com.eraprojects.erawallet
           sleep 12
-          capture="$RUNNER_TEMP/era-wallet-ipad-13-build11.png"
+          capture="$RUNNER_TEMP/era-wallet-ipad-13-current-source.png"
           xcrun simctl io "$uuid" screenshot "$capture"
           width="$(sips -g pixelWidth "$capture" | awk '/pixelWidth/{print $2}')"
           height="$(sips -g pixelHeight "$capture" | awk '/pixelHeight/{print $2}')"
@@ -172,9 +188,105 @@ jobs:
         if: inputs.capture_ipad_screenshot
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: era-wallet-ipad-13-build11-first-run
-          path: ${{ runner.temp }}/era-wallet-ipad-13-build11.png
+          name: era-wallet-ipad-13-current-source-first-run
+          path: ${{ runner.temp }}/era-wallet-ipad-13-current-source.png
           if-no-files-found: error
           retention-days: 7
+
+      - name: Capture reviewer access on a disposable 11-inch iPad simulator
+        if: inputs.capture_review_guide
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          def listing(kind):
+              return json.loads(subprocess.check_output(['xcrun','simctl','list',kind,'--json']))[kind]
+          devices = [d for d in listing('devicetypes') if 'iPad' in d['name'] and '11-inch' in d['name']]
+          devices.sort(key=lambda d: ('Air' in d['name'] and 'M3' in d['name'], 'Air' in d['name']))
+          runtimes = [r for r in listing('runtimes') if r.get('isAvailable') and '.iOS-' in r['identifier']]
+          runtimes.sort(key=lambda r: tuple(map(int,r['version'].split('.'))))
+          assert devices and runtimes, '11-inch iPad/iOS simulator unavailable'
+          device, runtime = devices[-1], runtimes[-1]
+          uid = subprocess.check_output(['xcrun','simctl','create','ERA disposable review access',device['identifier'],runtime['identifier']],text=True).strip()
+          open(os.path.join(os.environ['RUNNER_TEMP'],'review-simulator-id'),'w').write(uid)
+          os.makedirs('build/review-access-captures',exist_ok=True)
+          json.dump({'simulator':device['name'],'runtime':runtime['name'],'udid':uid,'source':os.environ.get('REVIEW_SOURCE'),'physical_device':False},open('build/review-access-captures/device.json','w'),indent=2)
+          PY
+          uid="$(cat "$RUNNER_TEMP/review-simulator-id")"
+          python3 - <<'PY'
+          import os, subprocess
+          uid = open(os.path.join(os.environ['RUNNER_TEMP'],'review-simulator-id')).read().strip()
+          def checked(label, command, seconds):
+              print('REVIEW_CAPTURE_STAGE:', label, flush=True)
+              subprocess.run(command, check=True, timeout=seconds)
+              print('REVIEW_CAPTURE_STAGE_COMPLETE:', label, flush=True)
+          checked('boot', ['xcrun','simctl','boot',uid], 90)
+          # CoreSimulator runs the fresh device headlessly. LaunchServices can
+          # wait indefinitely for the Simulator GUI while its first boot is
+          # still initializing (run 44370955567). The Flutter driver needs the
+          # booted device, not a foreground Simulator window.
+          checked('boot readiness', ['xcrun','simctl','bootstatus',uid,'-b'], 420)
+          try:
+              checked('cosmetic status bar', ['xcrun','simctl','status_bar',uid,'override','--time','9:41','--batteryState','charged','--batteryLevel','100'], 30)
+          except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as exc:
+              # A cosmetic override must not prevent genuine UI qualification.
+              print('Status-bar override unavailable:', type(exc).__name__, flush=True)
+          checked('review access integration test', ['flutter','drive','--no-pub','--driver=test_driver/review_access_driver.dart','--target=integration_test/review_access_test.dart','-d',uid], 1200)
+          PY
+        env:
+          REVIEW_SOURCE: ${{ needs.provenance.outputs.source_sha }}
+      - name: Export safe frames from only the disposable app container
+        if: inputs.capture_review_guide && always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shutil, subprocess
+          marker = pathlib.Path(os.environ['RUNNER_TEMP'])/'review-simulator-id'
+          if marker.is_file():
+              uid = marker.read_text().strip()
+              try:
+                  result = subprocess.run(['xcrun','simctl','get_app_container',uid,'com.eraprojects.erawallet','data'], capture_output=True, text=True, timeout=60)
+              except subprocess.TimeoutExpired:
+                  print('Disposable container lookup timed out; no UI captures claimed',flush=True)
+                  raise SystemExit(0)
+              if result.returncode == 0:
+                  source = pathlib.Path(result.stdout.strip())/'tmp'/'era-review-access-captures'
+                  destination = pathlib.Path('build/review-access-captures')
+                  destination.mkdir(parents=True,exist_ok=True)
+                  if source.is_dir():
+                      for frame in sorted(source.glob('*.png')):
+                          shutil.copy2(frame,destination/frame.name)
+                      print('Exported safe frames:',len(list(destination.glob('*.png'))),flush=True)
+              else:
+                  print('Disposable app container unavailable; no UI captures claimed',flush=True)
+          PY
+      - name: Retain reviewer captures for visual inspection
+        if: inputs.capture_review_guide && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: era-wallet-review-access-captures
+          path: era-wallet/build/review-access-captures
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove only the disposable capture simulators
+        if: (inputs.capture_review_guide || inputs.capture_ipad_screenshot) && always()
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          for marker_name in ['review-simulator-id','era-ipad-simulator-uuid']:
+            marker = pathlib.Path(os.environ['RUNNER_TEMP'])/marker_name
+            if not marker.is_file():
+              continue
+            if marker.is_file():
+              uid = marker.read_text().strip()
+              print('Removing only disposable review simulator:', uid, flush=True)
+              try:
+                  subprocess.run(['xcrun','simctl','shutdown',uid], timeout=60, check=False)
+              except subprocess.TimeoutExpired:
+                  print('Shutdown timed out; attempting UUID-scoped deletion', flush=True)
+              subprocess.run(['xcrun','simctl','delete',uid], timeout=60, check=True)
+              listing = json.loads(subprocess.check_output(['xcrun','simctl','list','devices','--json'], timeout=60))
+              assert all(d['udid'] != uid for group in listing['devices'].values() for d in group), 'Disposable simulator still present'
+              print('DISPOSABLE_REVIEW_SIMULATOR_REMOVED', flush=True)
+          PY
 
 # Deliberately no push/PR triggers, secrets, cache or signed binary uploads.
