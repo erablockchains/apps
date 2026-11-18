@@ -212,8 +212,10 @@ jobs:
               subprocess.run(command, check=True, timeout=seconds)
               print('REVIEW_CAPTURE_STAGE_COMPLETE:', label, flush=True)
           checked('boot', ['xcrun','simctl','boot',uid], 90)
-          # Open the installed Simulator host for the fresh disposable device.
-          checked('simulator host', ['open','-a','Simulator','--args','-CurrentDeviceUDID',uid], 60)
+          # CoreSimulator runs the fresh device headlessly. LaunchServices can
+          # wait indefinitely for the Simulator GUI while its first boot is
+          # still initializing (run 44370955567). The Flutter driver needs the
+          # booted device, not a foreground Simulator window.
           checked('boot readiness', ['xcrun','simctl','bootstatus',uid,'-b'], 420)
           try:
               checked('cosmetic status bar', ['xcrun','simctl','status_bar',uid,'override','--time','9:41','--batteryState','charged','--batteryLevel','100'], 30)
@@ -232,7 +234,11 @@ jobs:
           marker = pathlib.Path(os.environ['RUNNER_TEMP'])/'review-simulator-id'
           if marker.is_file():
               uid = marker.read_text().strip()
-              result = subprocess.run(['xcrun','simctl','get_app_container',uid,'com.eraprojects.erawallet','data'], capture_output=True, text=True, timeout=60)
+              try:
+                  result = subprocess.run(['xcrun','simctl','get_app_container',uid,'com.eraprojects.erawallet','data'], capture_output=True, text=True, timeout=60)
+              except subprocess.TimeoutExpired:
+                  print('Disposable container lookup timed out; no UI captures claimed',flush=True)
+                  raise SystemExit(0)
               if result.returncode == 0:
                   source = pathlib.Path(result.stdout.strip())/'tmp'/'era-review-access-captures'
                   destination = pathlib.Path('build/review-access-captures')
