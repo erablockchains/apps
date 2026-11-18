@@ -45,7 +45,9 @@ jobs:
 
   unsigned-ios:
     needs: provenance
-    runs-on: macos-26
+    # Standard public-repository Intel runner; avoids the arm64 capacity
+    # allocation failure in run 44322166562 without changing the app source.
+    runs-on: macos-26-intel
     timeout-minutes: 60
     env:
       CI: 'true'
