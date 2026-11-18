@@ -30,7 +30,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: era-wallet-ios-validation
+  # Store-only and full-review captures own separate disposable runners/devices.
+  # Serialize equivalent runs without making these independent captures wait.
+  group: era-wallet-ios-validation-${{ inputs.capture_review_guide && 'review' || (inputs.capture_ipad_screenshot && 'store' || 'compile') }}
   cancel-in-progress: false
 
 jobs:
