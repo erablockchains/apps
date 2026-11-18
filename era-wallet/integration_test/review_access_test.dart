@@ -55,6 +55,7 @@ void main() {
     await capture('02-demo-home');
     await section('Accounts');
     await capture('03-demo-accounts');
+    await section('Home');
     await tap('Show synthetic address QR');
     await capture('03b-demo-address-qr');
     await tap('Done');
