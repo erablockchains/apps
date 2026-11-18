@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      ERA_SOURCE_SHA: 2dafc9c9400f539af7ae64ba0e8444b1d0a80c17
+      ERA_SOURCE_SHA: aae8342ca835fc6c7bc22d008b37d9ae94d37001
       BUILD_NUMBER: ${{ inputs.build_number }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -47,7 +47,7 @@ jobs:
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
-      ERA_SOURCE_SHA: 2dafc9c9400f539af7ae64ba0e8444b1d0a80c17
+      ERA_SOURCE_SHA: aae8342ca835fc6c7bc22d008b37d9ae94d37001
       BUILD_NUMBER: ${{ inputs.build_number }}
     defaults:
       run:
@@ -57,7 +57,7 @@ jobs:
       - name: Check out exact reviewed source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: 2dafc9c9400f539af7ae64ba0e8444b1d0a80c17
+          ref: aae8342ca835fc6c7bc22d008b37d9ae94d37001
           persist-credentials: false
       - name: Verify App Store build toolchain
         run: |
