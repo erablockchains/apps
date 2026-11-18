@@ -59,12 +59,13 @@ void main() {
         'Staking',
         'NFT read',
         'Rewards',
+        'Demo controls',
       ]) {
         await tester.tap(find.widgetWithText(ChoiceChip, section));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
       }
-      expect(find.text('Review synthetic claim'), findsOneWidget);
+      expect(find.text('Reset synthetic demo'), findsOneWidget);
     });
   }
 
@@ -132,6 +133,12 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Home'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Synthetic available: 10.49'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Demo controls'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset synthetic demo'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Synthetic available: 12.00'), findsOneWidget);
+    expect(find.text('No demo action yet.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

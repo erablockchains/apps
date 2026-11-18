@@ -21,9 +21,10 @@ class _ReviewDemoScreenState extends State<ReviewDemoScreen> {
     'Staking',
     'NFT read',
     'Rewards',
+    'Demo controls',
   ];
 
-  final _demo = DemoSession();
+  DemoSession _demo = DemoSession();
   final _recipient = TextEditingController(text: DemoSession.recipient);
   final _amount = TextEditingController(text: '1');
   final _collection = TextEditingController(text: '9001');
@@ -219,6 +220,7 @@ class _ReviewDemoScreenState extends State<ReviewDemoScreen> {
                       _staking(),
                       _nft(),
                       _rewards(),
+                      _controls(),
                     ],
                   ),
                 ),
@@ -290,6 +292,39 @@ class _ReviewDemoScreenState extends State<ReviewDemoScreen> {
       ),
       if (_demo.activity.isEmpty) const Text('No demo action yet.'),
       for (final entry in _demo.activity) Text(entry),
+    ],
+  );
+
+  Widget _controls() => ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      const Text('Demonstration controls', style: TextStyle(fontSize: 22)),
+      const Text(
+        'Version 1.2.1 / prototype build 12. All examples are synthetic. '
+        'This page controls only the demo; it changes no real wallet settings.',
+      ),
+      FilledButton(
+        onPressed: () => setState(() {
+          _demo = DemoSession();
+          _recipient.text = DemoSession.recipient;
+          _amount.text = '1';
+          _collection.text = '9001';
+          _item.text = '1';
+          _feeEstimated = false;
+          _nftLoaded = false;
+          _rewardInspected = false;
+          _section = 0;
+        }),
+        child: const Text('Reset synthetic demo'),
+      ),
+      OutlinedButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Exit demo to ordinary wallet'),
+      ),
+      const Text(
+        'The ordinary wallet uses the local PIN and device authentication. '
+        'No PIN or recovery phrase is needed or accepted in this demo.',
+      ),
     ],
   );
 
