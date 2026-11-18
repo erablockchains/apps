@@ -8,6 +8,14 @@ on:
         required: false
         default: false
         type: boolean
+      simulator_runner:
+        description: Standard free public-repository simulator host (Intel fallback if Apple-silicon capacity is unavailable)
+        required: false
+        default: macos-15
+        type: choice
+        options:
+          - macos-15
+          - macos-15-intel
       source_sha:
         description: Full reviewed iOS commit SHA containing the published build9 fixes
         required: true
@@ -48,7 +56,8 @@ jobs:
     # Standard public-repository Apple-silicon runner. Intel first boot stalled
     # in KeychainMigrator before ERA launched in run 44384483918. The macOS15
     # image includes Xcode26.3; select it rather than the image's Xcode16 default.
-    runs-on: macos-15
+    # Map choices to a fixed standard-runner allowlist; never accept a paid label.
+    runs-on: ${{ inputs.simulator_runner == 'macos-15-intel' && 'macos-15-intel' || 'macos-15' }}
     timeout-minutes: 75
     env:
       CI: 'true'
