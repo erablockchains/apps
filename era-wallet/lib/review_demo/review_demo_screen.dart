@@ -59,10 +59,13 @@ class _ReviewDemoScreenState extends State<ReviewDemoScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              QrImageView(
-                data: DemoSession.address,
-                size: 200,
-                backgroundColor: Colors.white,
+              SizedBox.square(
+                dimension: 200,
+                child: QrImageView(
+                  data: DemoSession.address,
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
               ),
               const SizedBox(height: 12),
               const Text(
@@ -300,7 +303,7 @@ class _ReviewDemoScreenState extends State<ReviewDemoScreen> {
     children: [
       const Text('Demonstration controls', style: TextStyle(fontSize: 22)),
       const Text(
-        'Version 1.2.1 / prototype build 12. All examples are synthetic. '
+        'Version 1.2.1 / build 13. All examples are synthetic. '
         'This page controls only the demo; it changes no real wallet settings.',
       ),
       FilledButton(

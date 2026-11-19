@@ -7,6 +7,7 @@ import plistlib
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 REPOSITORY = "erablockchains/apps"
@@ -37,10 +38,27 @@ def validate_source(pubspec, project, info):
     return version[0].split(":", 1)[1].strip().strip("\"'")
 
 
+def request_headers(url):
+    headers = {"User-Agent": "ERA-iOS-source-preflight", "Accept": "application/vnd.github+json"}
+    target = urllib.parse.urlsplit(url)
+    token = os.environ.get("ERA_GITHUB_READ_TOKEN")
+    if token and target.scheme == "https" and target.hostname == "api.github.com" and target.port in (None, 443):
+        headers["Authorization"] = "Bearer " + token
+    return headers
+
+
+class ScopedAuthorizationRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, new_url):
+        redirected = super().redirect_request(request, fp, code, message, headers, new_url)
+        if redirected is not None and "Authorization" not in request_headers(new_url):
+            redirected.remove_header("Authorization")
+        return redirected
+
+
 def read_url(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "ERA-iOS-source-preflight", "Accept": "application/vnd.github+json"})
+    request = urllib.request.Request(url, headers=request_headers(url))
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.build_opener(ScopedAuthorizationRedirect()).open(request, timeout=30) as response:
             return response.read()
     except urllib.error.HTTPError as error:
         if error.code in (404, 422):
