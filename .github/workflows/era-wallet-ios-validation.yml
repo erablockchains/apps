@@ -51,6 +51,9 @@ jobs:
         id: verify
         env:
           ERA_SOURCE_SHA: ${{ inputs.source_sha }}
+          # Automatic ephemeral job token, already limited to contents: read.
+          # The verifier sends it only to api.github.com, never raw-file hosts.
+          ERA_GITHUB_READ_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/verify-era-ios-source.py --source-sha "$ERA_SOURCE_SHA"
 
   unsigned-ios:
