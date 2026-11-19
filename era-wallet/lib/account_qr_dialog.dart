@@ -71,11 +71,14 @@ class AccountQrCode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QrImageView(
-      data: publicAddress,
-      version: QrVersions.auto,
-      size: 220,
-      backgroundColor: Colors.white,
+    return SizedBox.square(
+      dimension: 220,
+      child: QrImageView(
+        data: publicAddress,
+        version: QrVersions.auto,
+        size: 220,
+        backgroundColor: Colors.white,
+      ),
     );
   }
 }

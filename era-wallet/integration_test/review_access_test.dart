@@ -4,6 +4,7 @@ import 'package:era_wallet/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -21,17 +22,16 @@ void main() {
     Future<void> capture(String name) async {
       await tester.pump(const Duration(milliseconds: 500));
       final screenshot = await binding.takeScreenshot(name);
-      // Persist each safe frame inside the disposable simulator immediately.
-      // Keeping every PNG inside the final VM-service JSON loses all images
-      // when a later assertion fails or that large response is interrupted.
+      // Keep the standard screenshot report for the host driver's callback.
+      // Also persist a fallback in this disposable application's Documents.
+      final documents = await getApplicationDocumentsDirectory();
       final directory = Directory(
-        '${Directory.systemTemp.path}/era-review-access-captures',
+        '${documents.path}/era-review-access-captures',
       );
       await directory.create(recursive: true);
       await File(
         '${directory.path}/$name.png',
       ).writeAsBytes(screenshot, flush: true);
-      (binding.reportData?['screenshots'] as List?)?.clear();
       // Only names, never PINs, phrases, keys or raw screenshots, enter logs.
       debugPrint('REVIEW_SAFE_CAPTURE_SAVED: $name');
     }
