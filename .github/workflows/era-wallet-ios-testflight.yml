@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      ERA_SOURCE_SHA: bb88efb5944188e984cc33d36dfc199bdb4b09b4
+      ERA_SOURCE_SHA: 20ff12624988c29c9a2ee90de7b843e39b9f082f
       ERA_GITHUB_READ_TOKEN: ${{ github.token }}
       BUILD_NUMBER: ${{ inputs.build_number }}
     steps:
@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           python3 .github/scripts/verify-era-ios-source.py --source-sha "$ERA_SOURCE_SHA"
           [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]
-          test "$BUILD_NUMBER" -ge 10
+          test "$BUILD_NUMBER" -ge 13
 
   signed-ios:
     needs: provenance
@@ -48,7 +48,7 @@ jobs:
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
-      ERA_SOURCE_SHA: bb88efb5944188e984cc33d36dfc199bdb4b09b4
+      ERA_SOURCE_SHA: 20ff12624988c29c9a2ee90de7b843e39b9f082f
       BUILD_NUMBER: ${{ inputs.build_number }}
     defaults:
       run:
@@ -58,7 +58,7 @@ jobs:
       - name: Check out exact reviewed source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: bb88efb5944188e984cc33d36dfc199bdb4b09b4
+          ref: 20ff12624988c29c9a2ee90de7b843e39b9f082f
           persist-credentials: false
       - name: Verify App Store build toolchain
         run: |
