@@ -47,6 +47,8 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - name: Test reviewed test-harness boundaries
+        run: python3 .github/scripts/test-install-review-test-harness.py
       - name: Verify release-source provenance before using a Mac runner
         id: verify
         env:
@@ -78,6 +80,29 @@ jobs:
         with:
           ref: ${{ needs.provenance.outputs.source_sha }}
           persist-credentials: false
+      - name: Check out reviewed test harness separately from the release source
+        if: inputs.capture_review_guide
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          path: .review-harness
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts
+            era-wallet/integration_test
+            era-wallet/test/review_access_action_test.dart
+          sparse-checkout-cone-mode: false
+      - name: Install test-only harness and verify release files are unchanged
+        if: inputs.capture_review_guide
+        working-directory: .
+        env:
+          REVIEW_SOURCE: ${{ needs.provenance.outputs.source_sha }}
+          REVIEW_HARNESS: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 .review-harness/.github/scripts/install-review-test-harness.py \
+            --source . --harness .review-harness \
+            --source-sha "$REVIEW_SOURCE" --harness-sha "$REVIEW_HARNESS"
       - name: Record native toolchain
         run: |
           set -euo pipefail
@@ -302,12 +327,22 @@ jobs:
                   print('Owned-container fallback unavailable; inspect retained host-driver PNGs:',len(list(pathlib.Path('build/review-access-captures').glob('*.png'))),flush=True)
           PY
       - name: Retain reviewer captures for visual inspection
+        id: review_artifact
+        continue-on-error: true
         if: inputs.capture_review_guide && always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: era-wallet-review-access-captures
           path: era-wallet/build/review-access-captures
           if-no-files-found: warn
+          retention-days: 7
+      - name: Retry reviewer artifact upload once after a service failure
+        if: inputs.capture_review_guide && always() && steps.review_artifact.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: era-wallet-review-access-captures-retry
+          path: era-wallet/build/review-access-captures
+          if-no-files-found: error
           retention-days: 7
       - name: Remove only the disposable capture simulators
         if: (inputs.capture_review_guide || inputs.capture_ipad_screenshot) && always()

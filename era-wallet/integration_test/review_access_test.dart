@@ -1,5 +1,6 @@
 // Run only on a newly created disposable iOS simulator, never a personal device.
 import 'dart:io';
+import 'review_access_actions.dart';
 import 'package:era_wallet/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,7 +103,7 @@ void main() {
       'App Review disposable',
     );
     await capture('13-ordinary-create-account');
-    await tester.tap(find.text('Create Account').last);
+    await tapCreateAccountAction(tester);
     await waitFor(find.text('Mnemonic (save now, shown only once):'));
     // Leave Accounts to clear its one-time phrase reveal before any capture.
     await tester.pageBack();
