@@ -18,6 +18,50 @@ class _RecordingAccounts extends AccountManager {
 }
 
 void main() {
+  testWidgets('review background and resume obey the platform lifecycle', (
+    tester,
+  ) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final observed = <AppLifecycleState>[];
+    final listener = AppLifecycleListener(
+      binding: tester.binding,
+      onStateChange: observed.add,
+    );
+    addTearDown(() {
+      listener.dispose();
+      if (tester.binding.lifecycleState == AppLifecycleState.paused) {
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      }
+      if (tester.binding.lifecycleState == AppLifecycleState.hidden) {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+      }
+      if (tester.binding.lifecycleState == AppLifecycleState.inactive) {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+      }
+    });
+    pauseReviewApp(tester);
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Background events must follow valid Flutter transitions.',
+    );
+    expect(tester.binding.lifecycleState, AppLifecycleState.paused);
+    resumeReviewApp(tester);
+    expect(tester.takeException(), isNull);
+    expect(observed, <AppLifecycleState>[
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]);
+  });
+
   for (final size in [const Size(800, 600), const Size(834, 1194)]) {
     testWidgets('review create action invokes account creation at $size', (
       tester,

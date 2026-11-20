@@ -15,3 +15,23 @@ Future<void> tapCreateAccountAction(WidgetTester tester) async {
   await tester.tap(action);
   await tester.pump(const Duration(milliseconds: 100));
 }
+
+void pauseReviewApp(WidgetTester tester) {
+  for (final state in <AppLifecycleState>[
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
+
+void resumeReviewApp(WidgetTester tester) {
+  for (final state in <AppLifecycleState>[
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}

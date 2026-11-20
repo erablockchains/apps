@@ -151,9 +151,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     // Exercise the real lifecycle lock and PIN route on this disposable
     // simulator. Never capture the entered PIN or a recovery phrase.
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    pauseReviewApp(tester);
     await Future<void>.delayed(const Duration(seconds: 62));
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    resumeReviewApp(tester);
     await tester.pump(const Duration(milliseconds: 600));
     await waitFor(find.text('ERA Wallet — Unlock'));
     await capture('20-ordinary-unlock-empty');
