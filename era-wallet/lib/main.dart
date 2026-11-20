@@ -272,8 +272,9 @@ class AccountManager with ChangeNotifier {
       _pendingRevealMnemonic[accountId];
 
   void clearAllPendingRevealMnemonics() {
+    // Route-disposal cleanup must not schedule builds while Flutter is locked.
+    // The departing Accounts screen is the only consumer of these reveals.
     _pendingRevealMnemonic.clear();
-    notifyListeners();
   }
 
   void clearPendingRevealForAccount(String id) {
@@ -581,10 +582,13 @@ class _EraWalletAppState extends State<EraWalletApp>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
-      _lastInactiveAt = DateTime.now();
+      // Preserve the first inactive instant across the complete background
+      // and resume transition sequence (paused -> hidden -> inactive).
+      _lastInactiveAt ??= DateTime.now();
     } else if (state == AppLifecycleState.resumed) {
       if (_lastInactiveAt == null) return;
       final elapsed = DateTime.now().difference(_lastInactiveAt!);
+      _lastInactiveAt = null;
       if (elapsed > const Duration(minutes: 1)) {
         final ctx = rootNavigatorKey.currentContext ?? context;
         try {
