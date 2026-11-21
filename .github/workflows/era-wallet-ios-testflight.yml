@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: Unique iOS CFBundleVersion (10 or higher; check App Store Connect before upload)
+        description: Unique iOS CFBundleVersion (14 or higher; check App Store Connect before upload)
         required: true
         type: string
       upload_testflight:
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      ERA_SOURCE_SHA: 20ff12624988c29c9a2ee90de7b843e39b9f082f
+      ERA_SOURCE_SHA: a53586f6be695b60995d8f64fc15acf8a35fbca2
       ERA_GITHUB_READ_TOKEN: ${{ github.token }}
       BUILD_NUMBER: ${{ inputs.build_number }}
     steps:
@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           python3 .github/scripts/verify-era-ios-source.py --source-sha "$ERA_SOURCE_SHA"
           [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]
-          test "$BUILD_NUMBER" -ge 13
+          test "$BUILD_NUMBER" -ge 14
 
   signed-ios:
     needs: provenance
@@ -48,7 +48,7 @@ jobs:
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
-      ERA_SOURCE_SHA: 20ff12624988c29c9a2ee90de7b843e39b9f082f
+      ERA_SOURCE_SHA: a53586f6be695b60995d8f64fc15acf8a35fbca2
       BUILD_NUMBER: ${{ inputs.build_number }}
     defaults:
       run:
@@ -58,7 +58,7 @@ jobs:
       - name: Check out exact reviewed source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: 20ff12624988c29c9a2ee90de7b843e39b9f082f
+          ref: a53586f6be695b60995d8f64fc15acf8a35fbca2
           persist-credentials: false
       - name: Verify App Store build toolchain
         run: |
